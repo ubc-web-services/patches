@@ -1,7 +1,7 @@
-diff --git a/smtp/smtp.phpmailer.inc b/smtp/smtp.phpmailer.inc
+diff --git a/smtp.phpmailer.inc b/smtp.phpmailer.inc
 index 95420d2..525e5e4 100644
---- a/smtp/smtp.phpmailer.inc
-+++ b/smtp/smtp.phpmailer.inc
+--- a/smtp.phpmailer.inc
++++ b/smtp.phpmailer.inc
 @@ -187,26 +187,26 @@ class PHPMailer {
     * Sets the default SMTP server port.
     * @var int

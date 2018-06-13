@@ -6,7 +6,7 @@ index b888814..f211d4d 100644
  
    $login_path = variable_get('simplesamlphp_auth_login_path', 'saml_login');
    $login_name = variable_get('simplesamlphp_auth_login_link_display_name', t('Federated Log In'));
-+  $login_image = '<img alt="$login_name" src="' . path_to_theme() . '/img/cwl-login-btn.gif" />';
++  $login_image = '<img src="' . path_to_theme() . '/img/cwl-login-btn.gif" />';
 +
    $destination = drupal_get_destination();
 -  $link = l($login_name, $login_path, array('query' => $destination));

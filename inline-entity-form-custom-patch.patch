@@ -1,0 +1,15 @@
+diff --git a/inline_entity_form.module b/inline_entity_form.module
+index c1a7d82..e33af8b 100644
+--- a/inline_entity_form.module
++++ b/inline_entity_form.module
+@@ -1552,6 +1552,10 @@ function inline_entity_form_field_attach_submit($parent_entity_type, $parent_ent
+         if ($item['needs_save']) {
+           $controller->save($item['entity'], $context);
+           $need_reset = TRUE;
++          // Added SX: 2016-11-04, fixes for duplication when adding existing entities
++          if (!empty($values['entities'])) {
++            $need_reset = TRUE;
++          }
+         }
+ 
+         list($entity_id) = entity_extract_ids($entity_type, $item['entity']);

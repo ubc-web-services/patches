@@ -13,8 +13,12 @@ Patches versions of Drupal 7 core older than 7.34 with the [core security update
 
 ## biblio-pubmed-issue-900818.patch
 
-Patches v.7.1 branch of the Biblio module to use https when fetching pubmed records, as per [this issue](https://www.drupal.org/project/biblio/issues/900818).
+Patches 7.1 branch of the Biblio module to use https when fetching pubmed records, as per [this issue](https://www.drupal.org/project/biblio/issues/900818).
 
 ## IEF_compatibility-2193025-14.patch
 
 Patches 7.x-3.0-alpha2 version of Conditional Fields module (used by students.ubc.ca)
+
+## inline-entity-form-custom-patch.patch
+
+Patches 7.x-1.8 verison of Inline Entity Form (used by students.ubc.ca)

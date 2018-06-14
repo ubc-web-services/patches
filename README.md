@@ -2,6 +2,9 @@
 
 A central repository for collecting patches required for building Web Services' Drupal websites.
 
+## simplesamlphp_auth_cwl_login-final.patch
+
+Adds an image to the Campus Wide Login link when using SimpleSAML. The image must reside in your theme at '/img/cwl-login-btn.gif"
 
 ## smtp.phpmailer.inc.mail.ubc.ca.patch
 

@@ -1,11 +1,11 @@
-diff --git a/sc_basic/LICENSE.txt b/sc_basic/LICENSE.txt
+diff --git a/LICENSE.txt b/LICENSE.txt
 old mode 100644
 new mode 100755
-diff --git a/sc_basic/css/shortcodestyles.css b/sc_basic/css/shortcodestyles.css
+diff --git a/css/shortcodestyles.css b/css/shortcodestyles.css
 new file mode 100755
 index 0000000..189c434
 --- /dev/null
-+++ b/sc_basic/css/shortcodestyles.css
++++ b/css/shortcodestyles.css
 @@ -0,0 +1,133 @@
 +.col-1-8 { width: 8.5%; }
 +.col-1-7 { width: 10.85%; }
@@ -141,12 +141,12 @@ index 0000000..189c434
 +	font-size: .933em;
 +}
 \ No newline at end of file
-diff --git a/sc_basic/sc_basic.info b/sc_basic/sc_basic.info
+diff --git a/sc_basic.info b/sc_basic.info
 old mode 100644
 new mode 100755
 index 6d1f849..2d1e516
---- a/sc_basic/sc_basic.info
-+++ b/sc_basic/sc_basic.info
+--- a/sc_basic.info
++++ b/sc_basic.info
 @@ -1,6 +1,6 @@
 -name = Shortcode Library: Basic Tags
 -description = Provides basic shortcode tags like columns, toggle, tabs, highlight, dropcap, etc.
@@ -157,10 +157,10 @@ index 6d1f849..2d1e516
  core = 7.x
  dependencies[] = filter
  dependencies[] = shortcode
-diff --git a/sc_basic/sc_basic.module b/sc_basic/sc_basic.module
+diff --git a/sc_basic.module b/sc_basic.module
 index a820609..d9776b2 100755
---- a/sc_basic/sc_basic.module
-+++ b/sc_basic/sc_basic.module
+--- a/sc_basic.module
++++ b/sc_basic.module
 @@ -6,7 +6,7 @@
   */
  function sc_basic_preprocess_page(&$variables) {
@@ -1210,11 +1210,11 @@ index a820609..d9776b2 100755
 +   return $output;
 + }*/
 \ No newline at end of file
-diff --git a/sc_basic/styling/css/shortcodestyles.css b/sc_basic/styling/css/shortcodestyles.css
+diff --git a/styling/css/shortcodestyles.css b/styling/css/shortcodestyles.css
 new file mode 100755
 index 0000000..41ffcae
 --- /dev/null
-+++ b/sc_basic/styling/css/shortcodestyles.css
++++ b/styling/css/shortcodestyles.css
 @@ -0,0 +1,26 @@
 +.col-1-8 { width: 8.5%; }
 +.col-1-7 { width: 10.85%; }

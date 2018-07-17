@@ -1,0 +1,39 @@
+diff --git a/packages/Mail/smtp.php b/packages/Mail/smtp.php
+index d8e0f6a..f13356a 100644
+--- a/packages/Mail/smtp.php
++++ b/packages/Mail/smtp.php
+@@ -131,7 +131,7 @@ class Mail_smtp extends Mail {
+      *
+      * @var string
+      */
+-    var $localhost = 'localhost';
++    var $localhost = 'ubc.ca';
+ 
+     /**
+      * SMTP connection timeout value.  NULL indicates no timeout.
+diff --git a/packages/Mail/smtpmx.php b/packages/Mail/smtpmx.php
+index f0b6940..ff88b19 100644
+--- a/packages/Mail/smtpmx.php
++++ b/packages/Mail/smtpmx.php
+@@ -82,7 +82,7 @@ class Mail_smtpmx extends Mail {
+      * @var string
+      * @see posix_uname()
+      */
+-    var $mailname = 'localhost';
++    var $mailname = 'ubc.ca';
+ 
+     /**
+      * SMTP connection timeout value.  NULL indicates no timeout.
+diff --git a/packages/Net/SMTP.php b/packages/Net/SMTP.php
+index 7dcc633..6803905 100644
+--- a/packages/Net/SMTP.php
++++ b/packages/Net/SMTP.php
+@@ -55,7 +55,7 @@ class Net_SMTP
+      * @var string
+      * @access public
+      */
+-    var $localhost = 'localhost';
++    var $localhost = 'ubc.ca';
+ 
+     /**
+      * List of supported authentication methods, in preferential order.

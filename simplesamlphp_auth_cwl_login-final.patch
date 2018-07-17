@@ -22,7 +22,7 @@ index b888814..f65ed46 100644
    }
  
    if ($form_id == 'user_login') {
-+    $form['links']['#prefix'] = '<div class="btn cwl-login">';
++    $form['links']['#prefix'] = '<div class="btn cwl-login pull-right">';
      $form['links']['#markup'] = $link;
 +    $form['links']['#suffix'] = '</div>';
    }

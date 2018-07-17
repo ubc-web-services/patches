@@ -25,3 +25,7 @@ Patches 7.x-3.0-alpha2 version of Conditional Fields module (used by students.ub
 ## inline-entity-form-custom-patch.patch
 
 Patches 7.x-1.8 verison of Inline Entity Form (used by students.ubc.ca)
+
+## sc_basic_ubc_mods.patch
+
+Patches 7.x-1.0-beta1 verison of Basic Shortcodes Library (used by sustain.ubc.ca)

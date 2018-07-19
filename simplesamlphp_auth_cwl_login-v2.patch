@@ -1,0 +1,99 @@
+diff --git a/css/button.cwl.css b/css/button.cwl.css
+new file mode 100644
+index 0000000..a24323d
+--- /dev/null
++++ b/css/button.cwl.css
+@@ -0,0 +1,50 @@
++.cwl-login {
++  background-image: none; /*temp*/
++  box-sizing: border-box;
++  display: inline-block;
++  padding: 8px 18px;
++  white-space: nowrap;
++  font-size: 16px;
++  line-height: 12px;
++  text-align: center;
++  vertical-align: middle;
++  cursor: pointer;
++  font-family: Arial, san-serif;
++  background-color: #002145;
++  -webkit-transition: background-color .5s ease;
++  transition: background-color .5s ease;
++}
++.cwl-login:hover {
++  background-color: #264e6a;
++}
++.cwl-login a {
++  box-sizing: border-box;
++  position: relative;
++  padding-left: 50px;
++  height: 40px;
++  line-height: 24px;
++  color: #fff;
++  text-decoration: none;
++  text-transform: none;
++  -webkit-transition: color .5s ease;
++  transition: color .5s ease;
++}
++.cwl-login span {
++  position: absolute;
++  display: inline-block;
++  left: 0;
++  top: -12px;
++  width: 42px;
++  height: 42px;
++  border: 2px solid #fff;
++  line-height: 40px;
++  background-color: orange;
++  border-radius: 50%;
++  font-size: 11px;
++  font-weight: bold;
++  -webkit-transition: background-color .5s ease;
++  transition: background-color .5s ease;
++}
++.cwl-login:hover span {
++  background-color: #264e6a;
++}
+diff --git a/simplesamlphp_auth.info b/simplesamlphp_auth.info
+index ea5ef19..84e96fd 100644
+--- a/simplesamlphp_auth.info
++++ b/simplesamlphp_auth.info
+@@ -4,6 +4,8 @@ core = 7.x
+ configure = admin/config/people/simplesamlphp_auth
+ php = 5.3
+ 
++stylesheets[all][] = css/button.cwl.css
++
+ ; Information added by Drupal.org packaging script on 2017-12-12
+ version = "7.x-3.x-dev"
+ core = "7.x"
+diff --git a/simplesamlphp_auth.module b/simplesamlphp_auth.module
+index b888814..e9a75e0 100644
+--- a/simplesamlphp_auth.module
++++ b/simplesamlphp_auth.module
+@@ -298,6 +298,15 @@ function simplesamlphp_auth_form_alter(&$form, $form_state, $form_id) {
+   $destination = drupal_get_destination();
+   $link = l($login_name, $login_path, array('query' => $destination));
+ 
++  $login_path = variable_get('simplesamlphp_auth_login_path', 'saml_login');
++  $login_name = variable_get('simplesamlphp_auth_login_link_display_name', t('Federated Log In'));
++  $login_text = '<span>CWL</span> Login';
++
++  $destination = drupal_get_destination();
++  $link = l($login_text, $login_path, array(
++    'query' => $destination,
++    'html' => TRUE));
++
+   // Add SAML login link to user login form.
+   if ($form_id == 'user_login_block' || $form_id == 'user_account_form') {
+     $links = $form['links']['#markup'];
+@@ -306,7 +315,9 @@ function simplesamlphp_auth_form_alter(&$form, $form_state, $form_id) {
+   }
+ 
+   if ($form_id == 'user_login') {
++    $form['links']['#prefix'] = '<div class="cwl-login pull-right">';
+     $form['links']['#markup'] = $link;
++    $form['links']['#suffix'] = '</div>';
+   }
+ 
+   if (($form_id == 'user_register_form' || $is_user_profile_account_form) && user_access('change saml authentication setting')) {

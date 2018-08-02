@@ -1,0 +1,14 @@
+diff --git a/pathauto.inc b/pathauto.inc
+index 9699aa0..0de288c 100644
+--- a/pathauto.inc
++++ b/pathauto.inc
+@@ -195,6 +195,9 @@ function pathauto_cleanstring($string, array $options = array()) {
+   // Remove all HTML tags from the string.
+   $output = strip_tags(decode_entities($string));
+ 
++  // Remove (R) and (TM) 
++  $output = preg_replace("/(™|®)/", "", $output);
++
+   // Optionally transliterate (by running through the Transliteration module)
+   if ($cache['transliterate']) {
+     // If the reduce strings to letters and numbers is enabled, don't bother

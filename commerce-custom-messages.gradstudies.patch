@@ -1,0 +1,32 @@
+diff --git a/modules/cart/commerce_cart.rules.inc b/modules/cart/commerce_cart.rules.inc
+index 9c0fdc23..7203e08f 100644
+--- a/modules/cart/commerce_cart.rules.inc
++++ b/modules/cart/commerce_cart.rules.inc
+@@ -193,7 +193,13 @@ function commerce_cart_rules_empty($order) {
+  * Rules action: displays a the default translatable Add to Cart message.
+  */
+ function commerce_cart_rules_add_to_cart_message($product) {
+-  drupal_set_message(t('%title added to <a href="!cart-url">your cart</a>.', array('%title' => $product->title, '!cart-url' => url('cart'))));
++
++  $desc = '';
++  if(isset($product->field_product_description['und'][0]['value'])) {
++    $desc = $product->field_product_description['und'][0]['value'];
++  }
++
++  drupal_set_message(t('%title added to <a href="!cart-url">your cart</a>.<br />%desc', array('%title' => $product->title, '!cart-url' => url('cart'), '%desc' => $desc)));
+ }
+ 
+ /**
+diff --git a/modules/checkout/commerce_checkout.module b/modules/checkout/commerce_checkout.module
+index 9e12f2f7..91232c22 100644
+--- a/modules/checkout/commerce_checkout.module
++++ b/modules/checkout/commerce_checkout.module
+@@ -372,7 +372,7 @@ function commerce_checkout_commerce_checkout_page_info() {
+   $checkout_pages['review'] = array(
+     'name' => t('Review'),
+     'title' => t('Review order'),
+-    'help' => t('Review your order before continuing.'),
++    'help' => t('Review your order before continuing. Once payment is complete, please make sure to print your Billing Information from the Payment Receipt page.'),
+     'weight' => 10,
+   );
+ 

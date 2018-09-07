@@ -25,3 +25,7 @@ Patches 7.x-3.0-alpha2 version of Conditional Fields module (used by students.ub
 ## inline-entity-form-custom-patch.patch
 
 Patches 7.x-1.8 verison of Inline Entity Form (used by students.ubc.ca)
+
+## civicrm-mail-header.patch
+
+Patches CiviCRM to disallow the modification of mail headers (test).

@@ -1,13 +1,13 @@
 diff --git a/special_menu_items.module b/special_menu_items.module
-index 93dc97f..2c9363f 100644
+index 2c9363f..93dc97f 100644
 --- a/special_menu_items.module
 +++ b/special_menu_items.module
 @@ -61,7 +61,7 @@ function special_menu_items_menu_link(array $variables) {
          $tag = variable_get('special_menu_items_nolink_tag', '<span>');
          $title = strip_tags(l($element['#title'], $element['#href'], $element['#localized_options']));
          $output = special_menu_items_render_menu_item($tag, $title);
--        $element['#attributes']['class'][] = 'nolink nav-header';
-+        $element['#attributes']['class'][] = 'nolink';
+-        $element['#attributes']['class'][] = 'nolink';
++        $element['#attributes']['class'][] = 'nolink nav-header';
          break;
          
        case '<separator>':

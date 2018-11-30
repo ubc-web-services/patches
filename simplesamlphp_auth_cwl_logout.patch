@@ -1,0 +1,68 @@
+diff --git a/simplesamlphp_auth.module b/simplesamlphp_auth.module
+index b888814..4d8b1ab 100644
+--- a/simplesamlphp_auth.module
++++ b/simplesamlphp_auth.module
+@@ -368,18 +368,29 @@ function simplesaml_auth_user_profile_form_submit(&$form, $form_state) {
+  * Implements hook_block_view().
+  */
+ function simplesamlphp_auth_block_view($delta = '') {
+-  if (!_simplesaml_auth_autoload()) {
+-    // Exit without executing.
+-    return;
+-  }
+-
+-  $block = array();
++  global $_simplesamlphp_auth_as;
++  global $user;
++  
+   switch ($delta) {
+-    case 0:
+-      $block = array(
+-        'subject' => t('simpleSAMLphp login'),
+-        'content' => _simplesamlphp_auth_generate_block_text(),
+-      );
++    case 'original':
++      if (!_simplesamlphp_auth_isEnabled()) {
++        // Exit without executing.
++        return;
++      }
++      else {
++        $block['subject'] = t('simpleSAMLphp login');
++        $block['content'] = _simplesamlphp_auth_generate_block_text();
++      }
++      break;
++    case 'cwllogout':
++      if (!$_simplesamlphp_auth_as->isAuthenticated()) {
++        $block['subject'] = t('CWL Logout Button with dynamic destination argument');
++        $block['content'] = t('not simplesaml authenticated');
++      }
++      else {
++        $block['subject'] = t('CWL Logout Button with dynamic destination argument');
++        $block['content'] = t('simplesaml authenticated');
++      }
+       break;
+   }
+   return $block;
+@@ -389,13 +400,16 @@ function simplesamlphp_auth_block_view($delta = '') {
+  * Implements hook_block_info().
+  */
+ function simplesamlphp_auth_block_info() {
+-  $block = array(
+-    array(
+-      'info' => t('simpleSAMLphp authentication'),
+-      'cache' => DRUPAL_NO_CACHE,
+-    ),
++  $blocks['original'] = array(
++    'info' => t('simpleSAMLphp authentication'),
++    'cache' => DRUPAL_NO_CACHE,
+   );
+-  return $block;
++  
++  $blocks['cwllogout'] = array(
++    'info' => t('CWL Logout Button'),
++  );
++
++  return $blocks;
+ }
+ 
+ /****************************************************************************

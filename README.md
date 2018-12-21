@@ -6,6 +6,10 @@ A central repository for collecting patches required for building Web Services' 
 
 Adds an image to the Campus Wide Login link when using SimpleSAML. The image must reside in your theme at '/img/cwl-login-btn.gif"
 
+## drupal8-smtp-config-timeout.patch
+
+Similar to below to add a config timeout to Drupal 8 SMTP module for establishing a connection to the UBC Mail server.
+
 ## smtp.phpmailer.inc.mail.ubc.ca.patch
 
 Patches the Drupal 7 SMTP module with the required settings for establishing a connection to the UBC Mail server.

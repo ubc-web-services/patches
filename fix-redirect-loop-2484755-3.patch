@@ -1,0 +1,3483 @@
+From cb4c5fe8d54fce57378374f02645959bc4e3f14c Mon Sep 17 00:00:00 2001
+From: Darren Oh <darren@oh.name>
+Date: Sun, 12 Jun 2016 19:40:30 -0400
+Subject: [PATCH 1/6] Fixed coding standards violations.
+
+---
+ README.txt                         |   1 -
+ digest_md5/README.txt              |   1 -
+ digest_md5/digest_md5.conf.php     |   8 +-
+ digest_md5/digest_md5.php          |  92 +++---
+ digest_md5/stored_passwords.php    |  31 +-
+ securesite.admin.inc               | 154 +++++----
+ securesite.inc                     |  45 ++-
+ securesite.info                    |   1 -
+ securesite.install                 |   2 +
+ securesite.module                  |  36 +-
+ securesite.test                    | 653 +++++++++++++++++++------------------
+ securesite.variable.inc            |   5 +-
+ theme/securesite-page.tpl.php      |   2 +-
+ theme/securesite-user-pass.tpl.php |   2 +-
+ theme/securesite.css               |   1 -
+ theme/securesite.theme.inc         |  16 +-
+ 16 files changed, 575 insertions(+), 475 deletions(-)
+
+diff --git a/README.txt b/README.txt
+index 5d9bc76..d9ffaea 100644
+--- a/README.txt
++++ b/README.txt
+@@ -1,4 +1,3 @@
+-
+ The Secure Site module allows site administrators to make a site or part of a
+ site private. You can restrict access to the site by role. This means the site
+ will be inaccessible to search engines and other crawlers, but you can still
+diff --git a/digest_md5/README.txt b/digest_md5/README.txt
+index 2c5c000..58c71df 100644
+--- a/digest_md5/README.txt
++++ b/digest_md5/README.txt
+@@ -1,4 +1,3 @@
+-
+ Digest authentication avoids transmitting passwords by exchanging character
+ strings (digests) that prove both the user and the Web server know the password.
+ This requires passwords for all users to be stored on the server. It is very
+diff --git a/digest_md5/digest_md5.conf.php b/digest_md5/digest_md5.conf.php
+index 7bdc346..00dac19 100644
+--- a/digest_md5/digest_md5.conf.php
++++ b/digest_md5/digest_md5.conf.php
+@@ -1,4 +1,5 @@
+ <?php
++// @ignore comment_comment_shell:file
+ 
+ /**
+  * @file
+@@ -10,7 +11,7 @@
+  * Path to your Drupal installation. We need this so that we can reuse some
+  * Drupal code.
+  */
+-$drupal = '.';
++define('DRUPAL_ROOT', dirname('.'));
+ 
+ /**
+  * Database settings:
+@@ -44,7 +45,7 @@ $db_url = 'mysql://username:password@localhost/databasename';
+  * Nonce values may be used an unlimited number of times. Uncomment the line
+  * below if you would like to set a limit.
+  */
+-# $max_nc = 1;
++# $_securesite_max_nc = 1;
+ 
+ /**
+  * Set up password and nonce storage.
+@@ -133,9 +134,12 @@ function _securesite_schema() {
+     switch ($db_type) {
+       case 'mysql':
+       case 'mysqli':
++        // @ignore sql_curly:1
+         $sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s'";
+         break;
++
+       case 'pgsql':
++        // @ignore sql_curly:1
+         $sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = '%s' AND table_schema = 'public' AND table_name = '%s'";
+         break;
+     }
+diff --git a/digest_md5/digest_md5.php b/digest_md5/digest_md5.php
+index 0c649d4..58a3fa9 100755
+--- a/digest_md5/digest_md5.php
++++ b/digest_md5/digest_md5.php
+@@ -27,20 +27,21 @@
+  */
+ foreach (array('-h', '--help', '-help', '-?', '/?', '?') as $arg) {
+   if (in_array($arg, $argv)) {
+-    exit('Usage: digest_md5.php [OPTIONS]...'."\n".
+-         "\n".
+-         'Options:'."\n".
+-         '  data=STRING         The contents of the Authentication header. A challenge'."\n".
+-         '                      will be issued if this is missing.'."\n".
+-         '  method=STRING       HTTP connection method. Defaults to AUTHENTICATE.'."\n".
+-         '  uri=STRING          URI of requested resource. If this is given, the URI'."\n".
+-         '                      value in the Authentication header must match it.'."\n".
+-         '  realm=STRING        Realm. Defaults to hostname.'."\n".
+-         '  fakerealm=STRING    Fake realm. Used to force browsers to re-authenticate.'."\n".
+-         '  opaque=STRING       Opaque string. Defaults to base64 encoded nonce value.'."\n".
+-         '  qop=STRING          Quality of protection. Defaults to auth.'."\n".
+-         '  entity-body=STRING  Message body for encryption and integrity checking.'."\n".
+-         "\n");
++    exit('Usage: digest_md5.php [OPTIONS]...' . "\n" .
++      "\n" .
++      'Options:' . "\n" .
++      '  data=STRING         The contents of the Authentication header. A challenge' . "\n" .
++      '                      will be issued if this is missing.' . "\n" .
++      '  method=STRING       HTTP connection method. Defaults to AUTHENTICATE.' . "\n" .
++      '  uri=STRING          URI of requested resource. If this is given, the URI' . "\n" .
++      '                      value in the Authentication header must match it.' . "\n" .
++      '  realm=STRING        Realm. Defaults to hostname.' . "\n" .
++      '  fakerealm=STRING    Fake realm. Used to force browsers to re-authenticate.' . "\n" .
++      '  opaque=STRING       Opaque string. Defaults to base64 encoded nonce value.' . "\n" .
++      '  qop=STRING          Quality of protection. Defaults to auth.' . "\n" .
++      '  entity-body=STRING  Message body for encryption and integrity checking.' . "\n" .
++      "\n"
++    );
+   }
+ }
+ 
+@@ -74,9 +75,9 @@ $edit['method'] = isset($edit['method']) ? $edit['method'] : 'AUTHENTICATE';
+  * Open a database connection.
+  */
+ $cwd = getcwd();
+-chdir($drupal);
+-require "./includes/bootstrap.inc";
+-require_once "./includes/database.inc";
++chdir(DRUPAL_ROOT);
++require DRUPAL_ROOT . '/includes/bootstrap.inc';
++require_once  DRUPAL_ROOT . '/includes/database.inc';
+ db_set_active();
+ chdir($cwd);
+ _securesite_schema();
+@@ -84,10 +85,11 @@ _securesite_schema();
+ /**
+  * Remove expired nonce values.
+  */
+-$time = time();
++// @ignore upgrade7x_6:1
++$_securesite_time = time();
+ $expire = isset($expire) ? $expire : 60;
+ if (!empty($expire)) {
+-  db_query("DELETE FROM {securesite_nonce} WHERE time < %d", $time - $expire);
++  db_query("DELETE FROM {securesite_nonce} WHERE time < %d", $_securesite_time - $expire);
+ }
+ 
+ /**
+@@ -104,24 +106,26 @@ else {
+   $edit['realm'] = isset($edit['realm']) ? $edit['realm'] : $uname['nodename'];
+   $edit['fakerealm'] = isset($edit['fakerealm']) ? $edit['fakerealm'] : $edit['realm'];
+   $qop = isset($edit['qop']) ? $edit['qop'] : 'auth';
+-  $values = array('nonce' => $nonce, 'time' => $time, 'realm' => $edit['realm'], 'qop' => $qop);
++  $values = array('nonce' => $nonce, 'time' => $_securesite_time, 'realm' => $edit['realm'], 'qop' => $qop);
+   $values += isset($edit['entity-body']) ? array('hash' => md5($edit['entity-body'])) : array();
+-  $challenge = array('realm="'. $edit['fakerealm'] .'"', 'nonce="'. $nonce .'"', 'qop="'. $qop .'"');
++  $challenge = array('realm="' . $edit['fakerealm'] . '"', 'nonce="' . $nonce . '"', 'qop="' . $qop . '"');
+   if ($method != 'AUTHENTICATE') {
+     $opaque = isset($edit['opaque']) ? $edit['opaque'] : base64_encode($nonce);
+     $values['opaque'] = $opaque;
+-    $challenge[] = 'opaque="'. $opaque .'"';
++    $challenge[] = 'opaque="' . $opaque . '"';
+   }
+-  print _digest_md5_challenge(array('values' => $values, 'challenge' => $challenge, 'new' => TRUE)) ."\n";
++  print _digest_md5_challenge(array('values' => $values, 'challenge' => $challenge, 'new' => TRUE)) . "\n";
+   exit;
+ }
+ 
+ /**
+  * Prepare a challenge.
++ *
+  * @param $edit
+  *   - values
+  *   - fields
+  *   - new
++ *
+  * @return
+  *   Digest challenge string.
+  */
+@@ -138,7 +142,7 @@ function _digest_md5_challenge($edit) {
+       }
+     }
+     if ($edit['new']) {
+-      db_query("INSERT INTO {securesite_nonce} (". implode(', ', array_keys($values)) .") VALUES (". implode(', ', $types) .")", $values);
++      db_query("INSERT INTO {securesite_nonce} (" . implode(', ', array_keys($values)) . ") VALUES (" . implode(', ', $types) . ")", $values);
+     }
+     else {
+       unset($types['nonce'], $types['realm']);
+@@ -146,7 +150,7 @@ function _digest_md5_challenge($edit) {
+       foreach ($types as $field => $type) {
+         $fields[] = "$field = $type";
+       }
+-      db_query("UPDATE {securesite_nonce} SET ". implode(', ', $fields) ." WHERE nonce = '%s' AND realm = '%s'", $values);
++      db_query("UPDATE {securesite_nonce} SET " . implode(', ', $fields) . " WHERE nonce = '%s' AND realm = '%s'", $values);
+     }
+   }
+   if (isset($edit['challenge'])) {
+@@ -156,17 +160,19 @@ function _digest_md5_challenge($edit) {
+ 
+ /**
+  * Process an authentication string.
++ *
+  * @param $edit
+  *   - data*
+  *   - method*
+  *   - uri
+  *   - realm (defaults to machine name if not in data)
+  *   - entity-body
++ *
+  * @return
+  *   Authentication info string or new challenge if authentication failed.
+  */
+ function _digest_md5_response($edit) {
+-  global $time, $max_nc;
++  global $_securesite_time, $_securesite_max_nc;
+   // Get status.
+   $fields = array();
+   foreach (explode(',', trim($edit['data'])) as $part) {
+@@ -199,6 +205,7 @@ function _digest_md5_response($edit) {
+           case 'auth-int':
+             $ha2 = md5("$edit[method]:$fields[uri]:$sn[hash]");
+             break;
++
+           case 'auth':
+             $ha2 = md5("$edit[method]:$fields[uri]");
+             break;
+@@ -220,12 +227,12 @@ function _digest_md5_response($edit) {
+         else {
+           if (isset($fields['qop']) && in_array($fields['qop'], explode(',', $sn['qop'])) && $fields['opaque'] == $sn['opaque'] || !isset($fields['qop']) && !isset($fields['nc'])) {
+             $dec_nc = isset($fields['qop']) ? hexdec($fields['nc']) : $sn['nc'] + 1;
+-            $max_nc = isset($max_nc) ? $max_nc : $dec_nc + 1;
++            $_securesite_max_nc = isset($_securesite_max_nc) ? $_securesite_max_nc : $dec_nc + 1;
+             if ($dec_nc <= $sn['nc']) {
+               // Replay attack; re-send challenge.
+               $status = REPLAY_ATTACK;
+             }
+-            elseif ($dec_nc > $max_nc) {
++            elseif ($dec_nc > $_securesite_max_nc) {
+               // Stale nonce; send new challenge with stale notice.
+               $status = STALE_NONCE;
+               db_query("DELETE FROM {securesite_nonce} WHERE nonce = '%s' AND realm = '%s'", $fields['nonce'], $edit['realm']);
+@@ -288,12 +295,12 @@ function _digest_md5_response($edit) {
+         $qop = isset($edit['entity-body']) ? 'auth,auth-int' : 'auth';
+         $fields['qop'] = isset($fields['qop']) ? $fields['qop'] : $qop;
+       }
+-      $challenge = array('realm="'. $fields['realm'] .'"', 'nonce="'. $fields['nonce'] .'"', 'qop="'. $fields['qop'] .'"', 'opaque="'. $fields['opaque'] .'"');
++      $challenge = array('realm="' . $fields['realm'] . '"', 'nonce="' . $fields['nonce'] . '"', 'qop="' . $fields['qop'] . '"', 'opaque="' . $fields['opaque'] . '"');
+       if ($status == 'stale') {
+         $challenge[] = 'stale=true';
+       }
+       if (!isset($sn) || $sn === FALSE) {
+-        $values = array('nonce' => $fields['nonce'], 'opaque' => $fields['opaque'], 'time' => $time, 'realm' => $edit['realm'], 'qop' => $fields['qop']);
++        $values = array('nonce' => $fields['nonce'], 'opaque' => $fields['opaque'], 'time' => $_securesite_time, 'realm' => $edit['realm'], 'qop' => $fields['qop']);
+         $values += isset($edit['entity-body']) ? array('hash' => md5($edit['entity-body'])) : array();
+         $output = _digest_md5_challenge(array('values' => $values, 'challenge' => $challenge, 'new' => TRUE));
+       }
+@@ -301,10 +308,11 @@ function _digest_md5_response($edit) {
+         $output = _digest_md5_challenge(array('challenge' => $challenge, 'new' => FALSE));
+       }
+       break;
++
+     case AUTHENTICATED:
+       $response = array();
+-      if ($dec_nc < $max_nc) {
+-        $values = array('nonce' => $fields['nonce'], 'time' => $time, 'realm' => $edit['realm']);
++      if ($dec_nc < $_securesite_max_nc) {
++        $values = array('nonce' => $fields['nonce'], 'time' => $_securesite_time, 'realm' => $edit['realm']);
+         $values += isset($edit['entity-body']) ? array('hash' => md5($edit['entity-body'])) : array();
+         $values += isset($fields['qop']) ? array('nc' => $dec_nc) : array();
+         _digest_md5_challenge(array('values' => $values, 'new' => FALSE));
+@@ -312,24 +320,26 @@ function _digest_md5_response($edit) {
+       else {
+         db_query("DELETE FROM {securesite_nonce} WHERE nonce = '%s' AND realm = '%s'", $fields['nonce'], $edit['realm']);
+         $nextnonce = uniqid();
+-        $values = array('nonce' => $nextnonce, 'opaque' => $fields['opaque'], 'time' => $time, 'realm' => $edit['realm'], 'qop' => $fields['qop']);
++        $values = array('nonce' => $nextnonce, 'opaque' => $fields['opaque'], 'time' => $_securesite_time, 'realm' => $edit['realm'], 'qop' => $fields['qop']);
+         $values += isset($edit['entity-body']) ? array('hash' => md5($edit['entity-body'])) : array();
+         _digest_md5_challenge(array('values' => $values, 'new' => TRUE));
+-        $response[] = 'nextnonce="'. $nextnonce .'"';
++        $response[] = 'nextnonce="' . $nextnonce . '"';
+       }
+       if (isset($fields['qop'])) {
+-        $response[] = 'qop='. $fields['qop'];
++        $response[] = 'qop=' . $fields['qop'];
+         switch ($fields['qop']) {
+           case 'auth-int':
+-            $response[] = 'cnonce="'. $fields['cnonce'] .'"';
+-            $response[] = 'nc="'. $fields['nc'] .'"';
++            $response[] = 'cnonce="' . $fields['cnonce'] . '"';
++            $response[] = 'nc="' . $fields['nc'] . '"';
+             $ha2 = md5(":$fields[uri]:$hash");
+             break;
++
+           case 'auth':
+-            $response[] = 'cnonce="'. $fields['cnonce'] .'"';
+-            $response[] = 'nc='. $fields['nc'];
++            $response[] = 'cnonce="' . $fields['cnonce'] . '"';
++            $response[] = 'nc=' . $fields['nc'];
+             $ha2 = md5(":$fields[uri]");
+             break;
++
+           default:
+             $ha2 = md5(":$fields[uri]");
+             break;
+@@ -337,9 +347,9 @@ function _digest_md5_response($edit) {
+         $digest = md5("$ha1:$fields[nonce]:$fields[nc]:$fields[cnonce]:$fields[qop]:$ha2");
+       }
+       else {
+-        $digest = md5("$ha1:$fields[nonce]:". md5(":$fields[uri]"));
++        $digest = md5("$ha1:$fields[nonce]:" . md5(":$fields[uri]"));
+       }
+-      $response[] = 'rspauth="'. $digest .'"';
++      $response[] = 'rspauth="' . $digest . '"';
+       $output = implode(', ', $response);
+       break;
+   }
+diff --git a/digest_md5/stored_passwords.php b/digest_md5/stored_passwords.php
+index 8e1cc4c..51616ed 100755
+--- a/digest_md5/stored_passwords.php
++++ b/digest_md5/stored_passwords.php
+@@ -56,9 +56,9 @@ $edit['realm'] = isset($edit['realm']) ? $edit['realm'] : $uname['nodename'];
+  * Open a database connection.
+  */
+ $cwd = getcwd();
+-chdir($drupal);
+-require "./includes/bootstrap.inc";
+-require_once "./includes/database.inc";
++chdir(DRUPAL_ROOT);
++require  DRUPAL_ROOT . '/includes/bootstrap.inc';
++require_once  DRUPAL_ROOT . '/includes/database.inc';
+ db_set_active();
+ chdir($cwd);
+ _securesite_schema();
+@@ -70,12 +70,14 @@ _stored_passwords_manage($edit);
+ 
+ /**
+  * Work with stored passwords.
++ *
+  * @param $edit
+  *   An array of data with the following keys:
+  *   - username: User name
+  *   - realm: Site realm
+  *   - pass: User password
+  *   - op: The operation to be performed. If none is given, an existing user will be updated.
++ *
+  * @return
+  *   None.
+  */
+@@ -92,6 +94,7 @@ function _stored_passwords_manage($edit) {
+         $output = _stored_passwords_manage($edit);
+       }
+       break;
++
+     case 'delete':
+       if (isset($edit['username'])) {
+         if (db_result(db_query_range("SELECT name FROM {securesite_passwords} WHERE name = '%s' AND realm = '%s'", $edit['username'], $edit['realm'], 0, 1)) === FALSE) {
+@@ -107,6 +110,7 @@ function _stored_passwords_manage($edit) {
+         $output = $result === FALSE ? "Failed to remove users from $edit[realm]." : "Removed users from $edit[realm].";
+       }
+       break;
++
+     default:
+       if (db_result(db_query_range("SELECT name FROM {securesite_passwords} WHERE name = '%s' AND realm = '%s'", $edit['username'], $edit['realm'], 0, 1)) === FALSE) {
+         $output = "$edit[username] not found in $edit[realm].";
+@@ -124,14 +128,15 @@ function _stored_passwords_manage($edit) {
+  * Display help message.
+  */
+ function _stored_passwords_help() {
+-  exit('Usage: stored_passwords.php [OPTIONS]...'."\n".
+-       "\n".
+-       'Options:'."\n".
+-       '  username=STRING    User identity. When not given, the delete op removes all'."\n".
+-       '                     users from the realm.'."\n".
+-       '  realm=STRING       Realm. Defaults to hostname.'."\n".
+-       '  password=STRING    User password.'."\n".
+-       '  op=STRING          Create or delete. By default, an existing user identity'."\n".
+-       '                     will be updated.'."\n".
+-       "\n");
++  exit('Usage: stored_passwords.php [OPTIONS]...' . "\n" .
++    "\n" .
++    'Options:' . "\n" .
++    '  username=STRING    User identity. When not given, the delete op removes all' . "\n" .
++    '                     users from the realm.' . "\n" .
++    '  realm=STRING       Realm. Defaults to hostname.' . "\n" .
++    '  password=STRING    User password.' . "\n" .
++    '  op=STRING          Create or delete. By default, an existing user identity' . "\n" .
++    '                     will be updated.' . "\n" .
++    "\n"
++  );
+ }
+diff --git a/securesite.admin.inc b/securesite.admin.inc
+index 6b92981..e770805 100644
+--- a/securesite.admin.inc
++++ b/securesite.admin.inc
+@@ -9,109 +9,109 @@
+  * Module help page.
+  */
+ function _securesite_admin_help() {
+-  return '<p>' . t('Secure Site allows site administrators to make a site or part of a site private. You can restrict access to the site by role. This means the site will be inaccessible to search engines and other crawlers, but you can still allow access to certain people.') . '</p>' . "\n" .
+-  '<p>' . t('You can also secure remote access to RSS feeds. You can keep content private and protected, but still allow users to get notification of new content and other actions via RSS with news readers that support <em>user:pass@example.com/node/feed</em> URLs, or have direct support for user name and password settings. This is especially useful when paired with the Organic Groups module or other node access systems.') . '</p>' . "\n" .
+-  '<h3>' . t('Configuration') . '</h3>' . "\n" .
++  return t('<p>Secure Site allows site administrators to make a site or part of a site private. You can restrict access to the site by role. This means the site will be inaccessible to search engines and other crawlers, but you can still allow access to certain people.</p>' . "\n" .
++  '<p>You can also secure remote access to RSS feeds. You can keep content private and protected, but still allow users to get notification of new content and other actions via RSS with news readers that support <em>user:pass@example.com/node/feed</em> URLs, or have direct support for user name and password settings. This is especially useful when paired with the Organic Groups module or other node access systems.</p>' . "\n" .
++  '<h3>Configuration</h3>' . "\n" .
+   '<ul>' . "\n" .
+-  '  <li>' . t('Force authentication') . "\n" .
+-  '    <p>' . t('This setting controls whether users will be forced to authenticate before viewing pages. By default, authentication is never forced.') . '</p>' . "\n" .
++  '  <li>Force authentication' . "\n" .
++  '    <p>This setting controls whether users will be forced to authenticate before viewing pages. By default, authentication is never forced.</p>' . "\n" .
+   '    <ol>' . "\n" .
+-  '      <li>' . t('Never') . "\n" .
+-  '        <p>' . t('This setting will prevent Secure Site from hiding pages.') . '</p>' . "\n" .
++  '      <li>Never' . "\n" .
++  '        <p>This setting will prevent Secure Site from hiding pages.</p>' . "\n" .
+   '      </li>' . "\n" .
+-  '      <li>' . t('Always') . "\n" .
+-  '        <p>' . t('This setting will hide your entire site from unauthenticated users.') . "\n" .
++  '      <li>Always' . "\n" .
++  '        <p>This setting will hide your entire site from unauthenticated users.' . "\n" .
+   '      </li>' . "\n" .
+-  '      <li>' . t('During maintenance') . "\n" .
+-  '        <p>' . t('This setting will hide your site during maintenance.') . "\n" .
++  '      <li>During maintenance' . "\n" .
++  '        <p>This setting will hide your site during maintenance.' . "\n" .
+   '      </li>' . "\n" .
+-  '      <li>' . t('On restricted pages') . "\n" .
+-  '        <p>' . t('This setting will hide only pages that anonymous users cannot access.') . "\n" .
++  '      <li>On restricted pages' . "\n" .
++  '        <p>This setting will hide only pages that anonymous users cannot access.' . "\n" .
+   '      </li>' . "\n" .
+   '    </ol>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Authentication type') . "\n" .
+-  '    <p>' . t('Three methods of authentication are available. Please note that HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="#issues">Known issues</a> section for details.') . "\n" .
++  '  <li>Authentication type' . "\n" .
++  '    <p>Three methods of authentication are available. Please note that HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="#issues">Known issues</a> section for details.' . "\n" .
+   '    <ol>' . "\n" .
+-  '      <li>' . t('HTTP digest') . "\n" .
+-  '        <p>' . t('This will enable HTTP digest authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page.') . '</p>' . "\n" .
+-  '        <p>' . t('Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server. For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="#passwords">Secure password storage</a> section for details.') . '</p>' . "\n" .
+-  '        <p>' . t('When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, you may lock yourself out of your own site.') . '</p>' . "\n" .
++  '      <li>HTTP digest' . "\n" .
++  '        <p>This will enable HTTP digest authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page.' . '</p>' . "\n" .
++  '        <p>Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server. For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="#passwords">Secure password storage</a> section for details.</p>' . "\n" .
++  '        <p>When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, you may lock yourself out of your own site.</p>' . "\n" .
+   '      </li>' . "\n" .
+-  '      <li>' . t('HTTP basic') . "\n" .
+-  '        <p>' . t('This will enable HTTP basic authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page. Basic authentication is not secure unless you are using SSL to encrypt the connection.') . '</p>' . "\n" .
++  '      <li>HTTP basic' . "\n" .
++  '        <p>This will enable HTTP basic authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page. Basic authentication is not secure unless you are using SSL to encrypt the connection.</p>' . "\n" .
+   '      </li>' . "\n" .
+-  '      <li>' . t('HTML log-in form') . "\n" .
+-  '        <p>' . t('This method uses a themeable HTML log-in form for user name and password input. This method is the most reliable as it does not rely on the browser for authentication. Like HTTP basic, it is insecure unless you are using SSL to encrypt the connection.') . '</p>' . "\n" .
++  '      <li>HTML log-in form' . "\n" .
++  '        <p>This method uses a themeable HTML log-in form for user name and password input. This method is the most reliable as it does not rely on the browser for authentication. Like HTTP basic, it is insecure unless you are using SSL to encrypt the connection.</p>' . "\n" .
+   '      </li>' . "\n" .
+   '    </ol>' . "\n" .
+-  '    <p>' . t('HTTP authentication is recommended for secure feeds, because feed readers are not likely to be able to handle forms. You can enable all three types of authentication at the same time.') . '</p>' . "\n" .
++  '    <p>HTTP authentication is recommended for secure feeds, because feed readers are not likely to be able to handle forms. You can enable all three types of authentication at the same time.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Digest authentication script') . "\n" .
+-  '    <p>' . t('For security, HTTP digest authentication uses an external script to check passwords. Enter the digest authentication script exactly as it would appear on the command line.') . '</p>' . "\n" .
++  '  <li>Digest authentication script' . "\n" .
++  '    <p>For security, HTTP digest authentication uses an external script to check passwords. Enter the digest authentication script exactly as it would appear on the command line.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Password storage script') . "\n" .
+-  '    <p>' . t('For security, HTTP digest authentication uses an external script to save passwords. Enter the password storage script exactly as it would appear on the command line.') . '</p>' . "\n" .
++  '  <li>Password storage script' . "\n" .
++  '    <p>For security, HTTP digest authentication uses an external script to save passwords. Enter the password storage script exactly as it would appear on the command line.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Authentication realm') . "\n" .
+-  '    <p>' . t('You can use this field to name your log-in area. This is primarily used with HTTP Auth.') . '</p>' . "\n" .
++  '  <li>Authentication realm' . "\n" .
++  '    <p>You can use this field to name your log-in area. This is primarily used with HTTP Auth.' . '</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Guest user name and password') . "\n" .
+-  '    <p>' . t('If you give anonymous users the <em>!access</em> permission, you can set a user name and password for anonymous users. If not set, guests can use any name and password.', array('!access' => l(t('access secured pages'), 'admin/people/permissions', array('fragment' => 'module-securesite')))) . '</p>' . "\n" .
++  '  <li>Guest user name and password' . "\n" .
++  '    <p>If you give anonymous users the <em><a href="!access">access secured pages</a></em> permission, you can set a user name and password for anonymous users. If not set, guests can use any name and password.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Customize HTML forms') . "\n" .
+-  '    <p>' . t('<em>Custom message for log-in form</em> and <em>Custom message for password reset form</em> are used in the HTML forms when they are displayed. If the latter box is empty, Secure Site will not offer to reset passwords. Please note, the log-in form is only displayed when the HTML log-in form authentication mode is used.') . '</p>' . "\n" .
++  '  <li>Customize HTML forms' . "\n" .
++  '    <p><em>Custom message for log-in form</em> and <em>Custom message for password reset form</em> are used in the HTML forms when they are displayed. If the latter box is empty, Secure Site will not offer to reset passwords. Please note, the log-in form is only displayed when the HTML log-in form authentication mode is used.</p>' . "\n" .
+   '  </li>' . "\n" .
+   '</ul>' . "\n" .
+-  '<h3><a name="passwords">' . t('Secure password storage') . '</a></h3>' . "\n" .
+-  '<p>' . t('Digest authentication avoids transmitting passwords by exchanging character strings (digests) that prove both the user and the Web server know the password. This requires passwords for all users to be stored on the server. It is very important to ensure that these passwords cannot be exposed to unauthorized users. Drupal should be able to store passwords without being able to retrieve them.') . '</p>' . "\n" .
+-  '<p>' . t('Secure Site provides scripts that can handle stored passwords securely when properly set up. These scripts are contained in the <em>digest_md5</em> directory. There are two scripts in this directory:') . '</p>' . "\n" .
++  '<h3 id="passwords">Secure password storage</h3>' . "\n" .
++  '<p>Digest authentication avoids transmitting passwords by exchanging character strings (digests) that prove both the user and the Web server know the password. This requires passwords for all users to be stored on the server. It is very important to ensure that these passwords cannot be exposed to unauthorized users. Drupal should be able to store passwords without being able to retrieve them.</p>' . "\n" .
++  '<p>Secure Site provides scripts that can handle stored passwords securely when properly set up. These scripts are contained in the <em>digest_md5</em> directory. There are two scripts in this directory:</p>' . "\n" .
+   '<dl>' . "\n" .
+-  '  <dt>stored_passwords.php</dt><dd>' . t('Add, delete, and update user passwords.') . '</dd>' . "\n" .
+-  '  <dt>digest_md5.php</dt><dd>' . t('Perform digest authentication.') . '</dd>' . "\n" .
++  '  <dt>stored_passwords.php</dt><dd>Add, delete, and update user passwords.</dd>' . "\n" .
++  '  <dt>digest_md5.php</dt><dd>Perform digest authentication.</dd>' . "\n" .
+   '</dl>' . "\n" .
+-  '<p>' . t('You can get help for these scripts by typing the script name followed by <em>--help</em> on the command line. You must be able to run PHP from the command line. Some configuration is required to make the scripts work properly:') . '</p>' . "\n" .
++  '<p>You can get help for these scripts by typing the script name followed by <em>--help</em> on the command line. You must be able to run PHP from the command line. Some configuration is required to make the scripts work properly:</p>' . "\n" .
+   '<ol>' . "\n" .
+-  '  <li>' . t('Set up a secure database') . "\n" .
+-  '    <p>' . t('You can set up a password database in the same way you create a Drupal database. Your password database should have its own user. No other database users should have access to the password database.') . '</p>' . "\n" .
++  '  <li>Set up a secure database' . "\n" .
++  '    <p>You can set up a password database in the same way you create a Drupal database. Your password database should have its own user. No other database users should have access to the password database.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Edit the configuration file') . "\n" .
+-  '    <p>' . t('Configuration settings for the scripts are in the <em>digest_md5.conf.php</em> file in the <em>digest_md5</em> directory. You must set <em>$db_url</em> to point to your password database. If you want to be able to use the scripts from the command-line, you must set <em>$drupal</em> to the absolute path of your Drupal installation. When you are done editing the configuration file, make it read-only.') . '</p>' . "\n" .
++  '  <li>Edit the configuration file' . "\n" .
++  '    <p>Configuration settings for the scripts are in the <em>digest_md5.conf.php</em> file in the <em>digest_md5</em> directory. You must set <em>$db_url</em> to point to your password database. If you want to be able to use the scripts from the command-line, you must set <em>$drupal</em> to the absolute path of your Drupal installation. When you are done editing the configuration file, make it read-only.</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Control access to the scripts') . "\n" .
+-  '    <p>' . t('The first thing you can do to secure the scripts is to move the <em>digest_md5</em> directory to a location that is not accessible from the Internet. The configuration file especially needs protection, because it contains information that allows access to the password database. On the Secure Site settings page, change the digest authentication script and password storage script to point to the new location. For example, if you moved the <em>digest_md5</em> directory to <em>/usr/local</em>, you would use') . '</p>' . "\n" .
++  '  <li>Control access to the scripts' . "\n" .
++  '    <p>The first thing you can do to secure the scripts is to move the <em>digest_md5</em> directory to a location that is not accessible from the Internet. The configuration file especially needs protection, because it contains information that allows access to the password database. On the Secure Site settings page, change the digest authentication script and password storage script to point to the new location. For example, if you moved the <em>digest_md5</em> directory to <em>/usr/local</em>, you would use</p>' . "\n" .
+   '    <pre>/usr/local/digest_md5/digest_md5.php' . "\n" .
+            '/usr/local/digest_md5/stored_passwords.php</pre>' . "\n" .
+-  '    <p>' . t('If the <em>sudo</em> command is available on your system, you can change the file system permissions on the all the files in the <em>digest_md5</em> directory so that only adminstrators have access to them. You would then add the user your Web server runs as to the <em>sudoers</em> file. A sample <em>sudoers</em> file is provided in the <em>digest_md5</em> directory for comparison. The important lines are') . '</p>' . "\n" .
++  '    <p>If the <em>sudo</em> command is available on your system, you can change the file system permissions on the all the files in the <em>digest_md5</em> directory so that only adminstrators have access to them. You would then add the user your Web server runs as to the <em>sudoers</em> file. A sample <em>sudoers</em> file is provided in the <em>digest_md5</em> directory for comparison. The important lines are</p>' . "\n" .
+   '    <pre>Defaults:apache	!authenticate' . "\n" .
+            'Defaults:apache	!lecture' . "\n" .
+            'apache	ALL=/usr/local/digest_md5/stored_passwords.php [A-z]*' . "\n" .
+            'apache	ALL=/usr/local/digest_md5/digest_md5.php [A-z]*</pre>' . "\n" .
+-  '    <p>' . t('This allows <em>apache</em> to use <em>sudo</em> only to run <em>stored_passwords.php</em> and <em>digest_md5.php</em>. Replace <em>apache</em> with the name of the Web server user on your system, and replace <em>/usr/local</em> with the directory in which you placed the <em>digest_md5</em> directory. On the Secure Site settings page, add <em>sudo</em> at the beginning of the line for the digest authentication script and the password storage script:') . '</p>' . "\n" .
++  '    <p>This allows <em>apache</em> to use <em>sudo</em> only to run <em>stored_passwords.php</em> and <em>digest_md5.php</em>. Replace <em>apache</em> with the name of the Web server user on your system, and replace <em>/usr/local</em> with the directory in which you placed the <em>digest_md5</em> directory. On the Secure Site settings page, add <em>sudo</em> at the beginning of the line for the digest authentication script and the password storage script:</p>' . "\n" .
+   '    <pre>sudo /usr/local/digest_md5/digest_md5.php' . "\n" .
+            'sudo /usr/local/digest_md5/stored_passwords.php</pre>' . "\n" .
+-  '    <p>' . t('If the rest of your system is secure, Drupal can now store passwords without having the ability to retrieve them.') . '</p>' . "\n" .
++  '    <p>If the rest of your system is secure, Drupal can now store passwords without having the ability to retrieve them.</p>' . "\n" .
+   '  </li>' . "\n" .
+   '</ol>' . "\n" .
+-  '<h3>' . t('Theming') . '</h3>' . "\n" .
+-  '<p>' . t('Secure Site&rsquo;s HTML output is controlled by three files:') . '</p>' . "\n" .
++  '<h3>Theming</h3>' . "\n" .
++  '<p>Secure Site&rsquo;s HTML output is controlled by three files:</p>' . "\n" .
+   '<dl>' . "\n" .
+-  '  <dt>securesite-page.tpl.php<dt><dd>' . t('Template for Secure Site pages. Works in the same way as page.tpl.php.') . '</dd>' . "\n" .
+-  '  <dt>securesite-user-login.tpl.php<dt><dd>' . t('Template for the user log-in form.') . '</dd>' . "\n" .
+-  '  <dt>securesite-user-pass.tpl.php<dt><dd>' . t('Template for the password reset form.') . '</dd>' . "\n" .
++  '  <dt>securesite-page.tpl.php<dt><dd>Template for Secure Site pages. Works in the same way as page.tpl.php.</dd>' . "\n" .
++  '  <dt>securesite-user-login.tpl.php<dt><dd>Template for the user log-in form.</dd>' . "\n" .
++  '  <dt>securesite-user-pass.tpl.php<dt><dd>Template for the password reset form.</dd>' . "\n" .
+   '</dl>' . "\n" .
+-  '<p>' . t('You can theme Secure Site&rsquo;s HTML output by copying these files to your theme&rsquo;s directory. The files in your theme&rsquo;s directory will become the templates for all Secure Site HTML output.') . '</p>' . "\n" .
+-  '<h3>' . t('Configuring cron jobs') . '</h3>' . "\n" .
+-  '<p>' . t('If HTTP authentication is forced, cron jobs will need to authenticate themselves. See !link for more details on configuring cron jobs. These examples show how to add a user name and password (note: Lynx does not support digest authentication):', array('!link' => l(t('Configuring cron jobs'), 'http://drupal.org/cron'))) . '</p>' . "\n" .
++  '<p>You can theme Secure Site&rsquo;s HTML output by copying these files to your theme&rsquo;s directory. The files in your theme&rsquo;s directory will become the templates for all Secure Site HTML output.</p>' . "\n" .
++  '<h3>Configuring cron jobs</h3>' . "\n" .
++  '<p>If HTTP authentication is forced, cron jobs will need to authenticate themselves. See <a href="https://drupal.org/cron">Configuring cron jobs</a> for more details on configuring cron jobs. These examples show how to add a user name and password (note: Lynx does not support digest authentication):</p>' . "\n" .
+   '<pre>45 * * * * /usr/bin/lynx -auth=<em>username</em>:<em>password</em> -source http://example.com/cron.php' . "\n" .
+        '45 * * * * /usr/bin/wget --user=<em>username</em> --password=<em>password</em> -O - -q http://example.com/cron.php' . "\n" .
+        '45 * * * * /usr/bin/curl --anyauth --user <em>username</em>:<em>password</em> --silent --compressed http://example.com/cron.php</pre>' . "\n" .
+-  '<h3><a name="issues">' . t('Known issues') . '</a></h3>' . "\n" .
++  '<h3 id="issues">Known issues</h3>' . "\n" .
+   '<ul>' . "\n" .
+-  '  <li>' . t('Authentication on PHP/CGI installations') . "\n" .
+-  '    <p>' . t('If you are using HTTP authentication and are unable to log in, PHP could be running in CGI mode. When run in CGI mode, the normal HTTP authentication variables are not available to PHP. To work around this issue, add the following rewrite rule at the end of the .htaccess file in Drupal&rsquo;s installation directory:') . '</p>' . "\n" .
++  '  <li>Authentication on PHP/CGI installations' . "\n" .
++  '    <p>If you are using HTTP authentication and are unable to log in, PHP could be running in CGI mode. When run in CGI mode, the normal HTTP authentication variables are not available to PHP. To work around this issue, add the following rewrite rule at the end of the .htaccess file in Drupal&rsquo;s installation directory:</p>' . "\n" .
+   '    <pre>RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>' . "\n" .
+-  '    <p>' . t('After making the suggested change in Drupal 6, the rewrite rules would look like this:') . '</p>' . "\n" .
++  '    <p>After making the suggested change in Drupal 6, the rewrite rules would look like this:' . '</p>' . "\n" .
+   '    <pre># Rewrite URLs of the form \'x\' to the form \'index.php?q=x\'.' . "\n" .
+            'RewriteCond %{REQUEST_FILENAME} !-f' . "\n" .
+            'RewriteCond %{REQUEST_FILENAME} !-d' . "\n" .
+@@ -119,24 +119,27 @@ function _securesite_admin_help() {
+            'RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]' . "\n" .
+            'RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>' . "\n" .
+   '  </li>' . "\n" .
+-  '  <li>' . t('Authentication when running Drupal via IIS') . "\n" .
+-  '    <p>' . t('If you are using HTTP authentication and are unable to log in when Drupal is running on an IIS server, make sure that the PHP directive <em>cgi.rfc2616_headers</em> is set to <em>0</em> (the default value).') . '</p>' . "\n" .
++  '  <li>Authentication when running Drupal via IIS' . "\n" .
++  '    <p>If you are using HTTP authentication and are unable to log in when Drupal is running on an IIS server, make sure that the PHP directive <em>cgi.rfc2616_headers</em> is set to <em>0</em> (the default value).</p>' . "\n" .
+   '  </li>' . "\n" .
+-  '</ul>' . "\n";
++  '</ul>' . "\n", array(
++    '!access' => url('admin/people/permissions', array('fragment' => 'module-securesite')),
++  ));
+ }
+ 
+ /**
+- * FAPI definition for Secure Site admin settings form
+- * @ingroup forms
+- * @see system_settings_form()
++ * Form constructor for admin settings form.
++ *
+  * @see securesite_admin_settings_validate()
+  * @see securesite_admin_settings_submit()
++ *
++ * @ingroup forms
+  */
+ function securesite_admin_settings() {
+   $form['authentication'] = array(
+     '#type' => 'fieldset',
+     '#title' => t('Authentication'),
+-    '#description' => t('Enable Secure Site below. Users must have the <em>!access</em> permission in order to access the site if authentication is forced.', array('!access' => l(t('access secured pages'), 'admin/people/permissions', array('fragment' => 'module-securesite'))))
++    '#description' => t('Enable Secure Site below. Users must have the <em><a href="@permission">access secured pages</a></em> permission in order to access the site if authentication is forced.', array('@permission' => url('admin/people/permissions', array('fragment' => 'module-securesite'))))
+   );
+   $form['authentication']['securesite_enabled'] = array(
+     '#type' => 'radios',
+@@ -162,9 +165,9 @@ function securesite_admin_settings() {
+     '#required' => TRUE,
+   );
+   $form['authentication']['securesite_type']['#description'] = "\n<p>" .
+-    t('HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the !link section of the Secure Site help for details.', array('!link' => l(t('Known issues'), 'admin/help/securesite', array('fragment' => 'issues')))) . "</p>\n<p>" .
++    t('HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="@issues-help">Known issues</a> section of the Secure Site help for details.', array('@issues-help' => url('admin/help/securesite', array('fragment' => 'issues')))) . "</p>\n<p>" .
+     t('Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server.') . ' ' .
+-    t('For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the !link section of the Secure Site help for details.', array('!link' => l(t('Secure password storage'), 'admin/help/securesite', array('fragment' => 'passwords')))) . "</p>\n<p>" .
++    t('For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="@passwords-help">Secure password storage</a> section of the Secure Site help for details.', array('@passwords-help' => url('admin/help/securesite', array('fragment' => 'passwords')))) . "</p>\n<p>" .
+     t('When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, <strong>you may lock yourself out of your own site.</strong>') . '</p>' . "\n";
+   $form['authentication']['securesite_digest_script'] = array(
+     '#type' => 'textarea',
+@@ -191,7 +194,7 @@ function securesite_admin_settings() {
+   $form['guest'] = array(
+     '#type' => 'fieldset',
+     '#title' => t('Guest access'),
+-    '#description' => t('Guest access allows anonymous users to view secure pages, though they will still be prompted for a user name and password. If you give anonymous users the <em>!access</em> permission, you can set the user name and password for anonymous users below.', array('!access' => l(t('access secured pages'), 'admin/people/permissions', array('fragment' => 'module-securesite')))),
++    '#description' => t('Guest access allows anonymous users to view secure pages, though they will still be prompted for a user name and password. If you give anonymous users the <em><a href="@permission">access secured pages</a></em> permission, you can set the user name and password for anonymous users below.', array('@permission' => url('admin/people/permissions', array('fragment' => 'module-securesite')))),
+   );
+   $guest_access = !user_access('access secured pages', drupal_anonymous_user());
+   $form['guest']['securesite_guest_name'] = array(
+@@ -236,6 +239,11 @@ function securesite_admin_settings() {
+   return system_settings_form($form);
+ }
+ 
++/**
++ * Form validation handler for securesite_admin_settings().
++ *
++ * @see securesite_admin_settings_submit()
++ */
+ function securesite_admin_settings_validate($form, &$form_state) {
+   foreach ($form_state['values']['securesite_type'] as $type => $value) {
+     if (empty($value)) {
+@@ -251,7 +259,9 @@ function securesite_admin_settings_validate($form, &$form_state) {
+ }
+ 
+ /**
+- * Configure access denied page and manage stored guest password.
++ * Form submission handler for securesite_admin_settings().
++ *
++ * @see securesite_admin_settings_validate()
+  */
+ function securesite_admin_settings_submit($form, &$form_state) {
+   $values = $form_state['values'];
+diff --git a/securesite.inc b/securesite.inc
+index 66a90e7..18bc786 100644
+--- a/securesite.inc
++++ b/securesite.inc
+@@ -1,4 +1,5 @@
+ <?php
++
+ /**
+  * @file
+  * Secure Site log-in functions.
+@@ -16,12 +17,15 @@ function _securesite_boot($type) {
+       $edit['pass'] = NULL;
+       $function = '_securesite_digest_auth';
+       break;
++
+     case SECURESITE_BASIC:
+       $edit['name'] = isset($_SERVER['PHP_AUTH_USER']) ? $_SERVER['PHP_AUTH_USER'] : '';
+       $edit['pass'] = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
+       $function = '_securesite_plain_auth';
+       break;
++
+     case SECURESITE_FORM:
++      // @ignore security_17:4
+       if (!empty($_POST['openid_identifier'])) {
+         openid_begin($_POST['openid_identifier'], $_POST['openid.return_to']);
+       }
+@@ -78,6 +82,7 @@ function _securesite_digest_auth($edit) {
+         drupal_add_http_header('Status', '400 Bad Request');
+         _securesite_dialog(securesite_type_get());
+         break;
++
+       case 0:
+         // Password is correct. Log user in.
+         drupal_add_http_header($header['name'], $header['value']);
+@@ -94,6 +99,7 @@ function _securesite_digest_auth($edit) {
+         drupal_add_http_header($header['name'], $header['value']);
+         _securesite_user_login($edit, $account);
+         break;
++
+       case 2:
+         // Password not stored. Request credentials using next most secure authentication method.
+         $mechanism = _securesite_mechanism();
+@@ -108,6 +114,7 @@ function _securesite_digest_auth($edit) {
+         drupal_set_message(t('Secure log-in failed. Please try again.'), 'error');
+         _securesite_dialog($type);
+         break;
++
+       case 1:
+         drupal_add_http_header('Status', '400 Bad Request');
+       default:
+@@ -127,6 +134,7 @@ function _securesite_digest_auth($edit) {
+  *   Will be set to the return status of the validation script
+  * @param $edit
+  *   An array of parameters to pass to the validation script
++ *
+  * @return
+  *   An HTTP header string.
+  */
+@@ -206,17 +214,17 @@ function _securesite_user_login($edit, $account) {
+     global $user;
+     $user = $account;
+     user_login_finalize($edit);
+-    
++
+     // Mark the session so Secure Site will be triggered on log-out.
+     $_SESSION['securesite_login'] = TRUE;
+-    
++
+     // Unset the session variable set by securesite_denied().
+     unset($_SESSION['securesite_denied']);
+     // Unset messages from previous log-in attempts.
+     unset($_SESSION['messages']);
+     // Clear the guest session.
+     unset($_SESSION['securesite_guest']);
+-    
++
+     // Always redirect to prevent access denied errors
+     $path = $_GET['q'];
+     // Prevent a log-in/log-out loop by redirecting off the log-out page.
+@@ -239,7 +247,7 @@ function _securesite_guest_login($edit) {
+   // Check anonymous user permission and credentials.
+   if (user_access('access secured pages') && (empty($guest_name) || $edit['name'] == $guest_name) && (empty($guest_pass) || $edit['pass'] == $guest_pass)) {
+     // Unset the session variable set by securesite_denied().
+-    if(isset($_SESSION['securesite_denied'])){
++    if (isset($_SESSION['securesite_denied'])) {
+       unset($_SESSION['securesite_denied']);
+     }
+     // Mark this session to prevent re-login (note: guests can't log out).
+@@ -277,11 +285,11 @@ function _securesite_denied($message) {
+     drupal_add_http_header('Status', '403 Forbidden');
+     drupal_set_title(t('Access denied'));
+     drupal_set_message(filter_xss($message), 'error');
+-    
++
+     // Theme and display output
+     $content = _securesite_dialog_page();
+     print theme('securesite_page', array('content' => $content));
+-    
++
+     // Exit
+     module_invoke_all('exit');
+     exit();
+@@ -318,8 +326,10 @@ function _securesite_forced() {
+     switch (variable_get('securesite_enabled', SECURESITE_DISABLED)) {
+       case SECURESITE_ALWAYS:
+         return TRUE;
++
+       case SECURESITE_OFFLINE:
+         return variable_get('site_offline', FALSE);
++
+       default:
+         return FALSE;
+     }
+@@ -380,10 +390,12 @@ function _securesite_dialog($type) {
+           drupal_add_http_header($header['name'], $header['value']);
+         }
+         break;
++
+       case SECURESITE_BASIC:
+         drupal_add_http_header('WWW-Authenticate', 'Basic realm="' . _securesite_fake_realm() . '"');
+         drupal_add_http_header('Status', '401 Unauthorized');
+         break;
++
+       case SECURESITE_FORM:
+         drupal_add_http_header('Status', '200 OK');
+         break;
+@@ -398,7 +410,7 @@ function _securesite_dialog($type) {
+   if (isset($content)) {
+     // Theme and display output
+     print theme('securesite_page', array('content' => $content));
+-    
++
+     // Exit page
+     module_invoke_all('exit');
+     exit();
+@@ -447,11 +459,14 @@ function _securesite_dialog_page() {
+ }
+ 
+ /**
+- * We use our own version of the log-in form for theming. We do not use the
++ * Form constructor for user login form.
++ *
++ * We use our own version of the login form for theming. We do not use the
+  * default validate and submit functions because we may allow anonymous users.
+  *
+- * @ingroup forms
+  * @see user_login()
++ *
++ * @ingroup forms
+  */
+ function securesite_user_login_form($form, &$form_state) {
+   $form['name'] = array(
+@@ -478,7 +493,7 @@ function securesite_user_login_form($form, &$form_state) {
+              '  background:transparent url(' . $base_path . drupal_get_path('module', 'openid') . '/login-bg.png) no-repeat scroll 1px 0.35em;' . "\n" .
+              '}' . "\n" .
+              '</style>';
+-    drupal_set_html_head($style);
++    drupal_add_html_head($style);
+   }
+ 
+   // drupal_alter takes this variable by reference so can't be a literal.
+@@ -488,11 +503,14 @@ function securesite_user_login_form($form, &$form_state) {
+ }
+ 
+ /**
++ * Form constructor for password reset form.
++ *
+  * We use our own version of the password reset form for theming.
+  *
+- * @ingroup forms
+  * @see user_pass_validate()
+  * @see user_pass_submit()
++ *
++ * @ingroup forms
+  */
+ function securesite_user_pass($form, &$form_state) {
+   module_load_include('inc', 'user', 'user.pages');
+@@ -506,6 +524,11 @@ function securesite_user_pass($form, &$form_state) {
+   return $form;
+ }
+ 
++/**
++ * Gets the preferred authentication method.
++ *
++ * @return int
++ */
+ function securesite_type_get() {
+   $securesite_type = variable_get('securesite_type', array(SECURESITE_BASIC));
+   return array_pop($securesite_type);
+diff --git a/securesite.info b/securesite.info
+index 49dc5f0..b2c6f6c 100644
+--- a/securesite.info
++++ b/securesite.info
+@@ -5,4 +5,3 @@ configure = admin/config/system/securesite
+ 
+ files[] = securesite.test
+ files[] = securesite.inc
+-
+diff --git a/securesite.install b/securesite.install
+index 26c03ce..a6be649 100644
+--- a/securesite.install
++++ b/securesite.install
+@@ -48,11 +48,13 @@ function securesite_update_6200() {
+     case 0:
+       variable_del('securesite_enabled');
+       break;
++
+     case 1:
+     case 2:
+       variable_set('securesite_enabled', SECURESITE_ALWAYS);
+       variable_set('securesite_type', array(SECURESITE_BASIC));
+       break;
++
+     case 3:
+       variable_set('securesite_enabled', SECURESITE_ALWAYS);
+       variable_set('securesite_type', array(SECURESITE_FORM));
+diff --git a/securesite.module b/securesite.module
+index 5a70cc5..8f6f8d7 100644
+--- a/securesite.module
++++ b/securesite.module
+@@ -1,10 +1,29 @@
+ <?php
++
+ /**
+  * @file
+  * Enables HTTP authentication or an HTML form to restrict site access.
+  */
+ 
+ /**
++ * @mainpage
++ * This module allows you to authenticate users with a browser-based password
++ * (HTTP Auth). You can restrict access to the site by role and choose to secure
++ * restricted pages or the entire site. This means the site will be inaccessible
++ * to search engines and other crawlers, but you can still allow access to
++ * certain users.
++ *
++ * The other thing that is enabled by this module is secure, remote access to
++ * RSS feeds. You can keep content private and protected, but still allow users
++ * to get notification of new content and other actions via RSS with news
++ * readers that support user:pass@example.com/node/feed URLs, or have direct
++ * support for user and password settings. This is especially useful when paired
++ * with the Organic Groups module or other node access systems.
++ *
++ * @link https://www.drupal.org/project/securesite Project page @endlink
++ */
++
++/**
+  * Secure Site status: Disabled
+  */
+ define('SECURESITE_DISABLED', 0);
+@@ -40,7 +59,7 @@ define('SECURESITE_BASIC', 2);
+ define('SECURESITE_DIGEST', 3);
+ 
+ /**
+- * Implementation of hook_help().
++ * Implements hook_help().
+  */
+ function securesite_help($path, $arg) {
+   switch ($path) {
+@@ -141,6 +160,7 @@ function _securesite_mechanism() {
+         case 'digest':
+           $_SERVER['PHP_AUTH_DIGEST'] = $authorization;
+           break;
++
+         case 'basic':
+           list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', base64_decode($authorization), 2);
+           break;
+@@ -157,12 +177,14 @@ function _securesite_mechanism() {
+             break 2;
+           }
+           break;
++
+         case SECURESITE_BASIC:
+           if ((isset($_SERVER['PHP_AUTH_USER']) || isset($_SERVER['PHP_AUTH_PW']))) {
+             $mechanism = SECURESITE_BASIC;
+             break 2;
+           }
+           break;
++
+         case SECURESITE_FORM:
+           if (isset($_POST['form_id']) && $_POST['form_id'] == 'securesite_user_login_form') {
+             $mechanism = SECURESITE_FORM;
+@@ -178,7 +200,7 @@ function _securesite_mechanism() {
+ /**
+  * Implements hook_form_alter().
+  */
+-function securesite_form_alter(&$form, $form_state, $form_id) {
++function securesite_form_alter(&$form, &$form_state, $form_id) {
+   if (in_array($form_id, array('user_register_form', 'user_profile_form'))) {
+     $form['#validate'][] = 'securesite_user_validate';
+   }
+@@ -191,8 +213,8 @@ function securesite_user_validate($form, $form_state) {
+   if (!array_key_exists('name', form_set_error()) && isset($form_state['values']['name']) && $form_state['values']['name'] == variable_get('securesite_guest_name', '')) {
+     form_set_error('name', t('The name %name is being used as the %site guest name.', array(
+       '%name' => $form_state['values']['name'],
+-      '%site' => variable_get('site_name', 'Drupal'))
+-    ));
++      '%site' => variable_get('site_name', 'Drupal'),
++    )));
+   }
+ }
+ 
+@@ -222,9 +244,9 @@ function securesite_user_load($users) {
+ /**
+  * Manage a users stored password.
+  *
+- * @see secure_user_insert
+- * @see secure_user_update
+- * @see secure_user_load
++ * @see secure_user_insert()
++ * @see secure_user_update()
++ * @see secure_user_load()
+  *
+  * @todo more documentation would be useful.
+  */
+diff --git a/securesite.test b/securesite.test
+index 7286a41..fe0cd0a 100644
+--- a/securesite.test
++++ b/securesite.test
+@@ -4,144 +4,145 @@
+  * @file
+  * Tests for Secure Site module.
+  *
+- * 1 Unit tests
+- *   1.1 Scripts
+- *       1.1.1 stored_passwords.php
+- *             1.1.1.1 Remove all users from realm.
+- *             1.1.1.2 Add new user.
+- *             1.1.1.3 Update existing user.
+- *             1.1.1.4 Update nonexistent user.
+- *             1.1.1.5 Remove existing user.
+- *             1.1.1.6 Remove nonexistent user.
+- *       1.1.2 digest_md5.php
+- *             1.1.2.1 Check digest challenge string.
+- *             1.1.2.2 No quality of protection
+- *                     1.1.2.2.1 Check response to stored password.
+- *                     1.1.2.2.2 Check response to expired challenge.
+- *                     1.1.2.2.3 Check response to wrong password.
+- *                     1.1.2.2.4 Check response to unstored password.
+- *             1.1.2.3 Auth quality of protection
+- *                     1.1.2.3.1 Check response to stored password.
+- *                     1.1.2.3.2 Check response to replay attack.
+- *   1.2 Functions
+- *       1.2.1 user_save()
+- *             1.2.1.1 Add new user.
+- *             1.2.1.2 Update user name without changing password.
+- *             1.2.1.3 Update user name and password.
+- *       1.2.2 user_load()
+- *             1.2.2.1 Load user without password.
+- *             1.2.2.2 Load user with password.
+- *       1.2.3 user_delete()
+- *             1.2.3.1 Remove user.
+- *       1.2.4 _securesite_forced()
+- *             1.2.4.1 Check output without forced authentication.
+- *             1.2.4.2 Check output with authentication always forced.
+- *             1.2.4.3 Check output for on-line site with authentication forced when site is off line.
+- *             1.2.4.4 Check output for off-line site with authentication forced when site is off line.
+- *             1.2.4.5 Check output with authentication forced on restricted pages.
+- *       1.2.5 _securesite_digest_validate()
+- *             1.2.5.1 Check output without input.
+- *             1.2.5.2 Check output without data.
+- *             1.2.5.3 Check output with data.
+- *       1.2.6 _securesite_fake_realm()
+- *             1.2.6.1 Check realm with normal browser.
+- *             1.2.6.2 Check realm with Internet Explorer.
+- *             1.2.6.3 Check realm with Opera.
+- *       1.2.7 _securesite_dialog_page()
+- *             1.2.7.1 Check output with both log-in and password reset disabled.
+- *             1.2.7.2 Check output with log-in enabled and password reset disabled.
+- *             1.2.7.3 Check output with log-in disabled and password reset enabled.
+- *             1.2.7.4 Check output with both log-in and password reset enabled.
+- * 2 Functional tests
+- *   2.1 Name conflict prevention
+- *       2.1.1 Register user with guest name.
+- *       2.1.2 Create user with guest name.
+- *       2.1.3 Set user name to guest name.
+- *       2.1.4 Set guest name to user name.
+- *   2.2 Forced authentication
+- *       2.2.1 Disabled
+- *             2.2.1.1 Request home page.
+- *       2.2.2 Always
+- *             2.2.2.1 Request home page.
+- *             2.2.2.2 Request home page with logged in user.
+- *             2.2.2.3 Request home page with logged in guest.
+- *             2.2.2.4 Try valid reset page URL.
+- *             2.2.2.5 Try invalid reset page URL.
+- *             2.2.2.6 Submit password reset form.
+- *             2.2.2.7 Try cron.php with all authentication types enabled.
+- *             2.2.2.8 Try cron.php with only form authentication enabled.
+- *       2.2.3 Offline
+- *             2.2.3.1 Request on-line home page.
+- *             2.2.3.2 Request off-line home page.
+- *       2.2.4 403
+- *             2.2.4.1 Logged out
+- *                     2.2.4.1.1 Request home page.
+- *                     2.2.4.1.2 Request admin page.
+- *             2.2.4.2 Logged in
+- *                     2.2.4.2.1 Request admin page for non-admin user.
+- *       2.2.5 403 error configuration
+- *             2.2.5.1 Check access denied page when setting forced authentication on restricted pages.
+- *             2.2.5.2 Keep current access denied page when no previous setting exists.
+- *             2.2.5.3 Save previous access denied page.
+- *             2.2.5.4 Restore previous access denied page.
+- *   2.3 Basic authentication
+- *       2.3.1 Request home page without credentials.
+- *       2.3.2 Registered user
+- *             2.3.2.1 Request home page with wrong password.
+- *             2.3.2.2 Request home page with correct password and access disabled.
+- *             2.3.2.3 Request home page with correct password and access enabled.
+- *             2.3.2.4 Request log-out page.
+- *             2.3.2.5 Request home page with credentials for new user.
+- *       2.3.3 Guest user
+- *             2.3.3.1 Password not set
+- *                     2.3.3.1.1 Request home page with empty credentials and access disabled.
+- *                     2.3.3.1.2 Request home page with empty credentials and access enabled.
+- *                     2.3.3.1.3 Request home page with random credentials and access disabled.
+- *                     2.3.3.1.4 Request home page with random credentials and access enabled.
+- *                     2.3.3.1.5 Request home page with credentials for new user.
+- *             2.3.3.2 Password set and access enabled
+- *                     2.3.3.2.1 Request home page with empty credentials.
+- *                     2.3.3.2.2 Request home page with random credentials.
+- *                     2.3.3.2.3 Request home page with guest credentials.
+- *   2.4 Form authentication
+- *       2.4.1 Request home page without credentials.
+- *       2.4.2 Registered user
+- *             2.4.2.1 Request home page with wrong password.
+- *             2.4.2.2 Request home page with correct password and access disabled.
+- *             2.4.2.3 Request home page with correct password and access enabled.
+- *       2.4.3 Guest user
+- *             2.4.3.1 Request home page with empty credentials and access disabled.
+- *             2.4.3.2 Request home page with random credentials and access disabled.
+- *             2.4.3.3 Request home page with random credentials and access enabled.
+- *   2.5 Digest authentication
+- *       2.5.1 Request home page without credentials.
+- *       2.5.2 Registered user with access enabled
+- *             2.5.2.1 Unstored password
+- *                     2.5.2.1.1 Request home page with basic fall-back.
+- *                     2.5.2.1.2 Request home page with form fall-back.
+- *                     2.5.2.1.3 Store password with fall-back authentication method.
+- *             2.5.2.2 Stored password
+- *                     2.5.2.2.1 Request home page with wrong password.
+- *                     2.5.2.2.2 Request home page with correct password.
+- *                     2.5.2.2.3 Request log-out page.
+- *       2.5.3 Guest user with access enabled
+- *             2.5.3.1 Password not set
+- *                     2.5.3.1.1 Request home page with empty credentials.
+- *                     2.5.3.1.2 Request home page with random credentials.
+- *             2.5.3.2 Password set
+- *                     2.5.3.2.1 Request home page with empty credentials.
+- *                     2.5.3.2.2 Request home page with random credentials.
+- *                     2.5.3.2.3 Request home page with correct credentials.
++ * - 1 Unit tests
++ *   - 1.1 Scripts
++ *       - 1.1.1 stored_passwords.php
++ *             - 1.1.1.1 Remove all users from realm.
++ *             - 1.1.1.2 Add new user.
++ *             - 1.1.1.3 Update existing user.
++ *             - 1.1.1.4 Update nonexistent user.
++ *             - 1.1.1.5 Remove existing user.
++ *             - 1.1.1.6 Remove nonexistent user.
++ *       - 1.1.2 digest_md5.php
++ *             - 1.1.2.1 Check digest challenge string.
++ *             - 1.1.2.2 No quality of protection
++ *                     - 1.1.2.2.1 Check response to stored password.
++ *                     - 1.1.2.2.2 Check response to expired challenge.
++ *                     - 1.1.2.2.3 Check response to wrong password.
++ *                     - 1.1.2.2.4 Check response to unstored password.
++ *             - 1.1.2.3 Auth quality of protection
++ *                     - 1.1.2.3.1 Check response to stored password.
++ *                     - 1.1.2.3.2 Check response to replay attack.
++ *   - 1.2 Functions
++ *       - 1.2.1 user_save()
++ *             - 1.2.1.1 Add new user.
++ *             - 1.2.1.2 Update user name without changing password.
++ *             - 1.2.1.3 Update user name and password.
++ *       - 1.2.2 user_load()
++ *             - 1.2.2.1 Load user without password.
++ *             - 1.2.2.2 Load user with password.
++ *       - 1.2.3 user_delete()
++ *             - 1.2.3.1 Remove user.
++ *       - 1.2.4 _securesite_forced()
++ *             - 1.2.4.1 Check output without forced authentication.
++ *             - 1.2.4.2 Check output with authentication always forced.
++ *             - 1.2.4.3 Check output for on-line site with authentication forced when site is off line.
++ *             - 1.2.4.4 Check output for off-line site with authentication forced when site is off line.
++ *             - 1.2.4.5 Check output with authentication forced on restricted pages.
++ *       - 1.2.5 _securesite_digest_validate()
++ *             - 1.2.5.1 Check output without input.
++ *             - 1.2.5.2 Check output without data.
++ *             - 1.2.5.3 Check output with data.
++ *       - 1.2.6 _securesite_fake_realm()
++ *             - 1.2.6.1 Check realm with normal browser.
++ *             - 1.2.6.2 Check realm with Internet Explorer.
++ *             - 1.2.6.3 Check realm with Opera.
++ *       - 1.2.7 _securesite_dialog_page()
++ *             - 1.2.7.1 Check output with both log-in and password reset disabled.
++ *             - 1.2.7.2 Check output with log-in enabled and password reset disabled.
++ *             - 1.2.7.3 Check output with log-in disabled and password reset enabled.
++ *             - 1.2.7.4 Check output with both log-in and password reset enabled.
++ * - 2 Functional tests
++ *   - 2.1 Name conflict prevention
++ *       - 2.1.1 Register user with guest name.
++ *       - 2.1.2 Create user with guest name.
++ *       - 2.1.3 Set user name to guest name.
++ *       - 2.1.4 Set guest name to user name.
++ *   - 2.2 Forced authentication
++ *       - 2.2.1 Disabled
++ *             - 2.2.1.1 Request home page.
++ *       - 2.2.2 Always
++ *             - 2.2.2.1 Request home page.
++ *             - 2.2.2.2 Request home page with logged in user.
++ *             - 2.2.2.3 Request home page with logged in guest.
++ *             - 2.2.2.4 Try valid reset page URL.
++ *             - 2.2.2.5 Try invalid reset page URL.
++ *             - 2.2.2.6 Submit password reset form.
++ *             - 2.2.2.7 Try cron.php with all authentication types enabled.
++ *             - 2.2.2.8 Try cron.php with only form authentication enabled.
++ *       - 2.2.3 Offline
++ *             - 2.2.3.1 Request on-line home page.
++ *             - 2.2.3.2 Request off-line home page.
++ *       - 2.2.4 403
++ *             - 2.2.4.1 Logged out
++ *                     - 2.2.4.1.1 Request home page.
++ *                     - 2.2.4.1.2 Request admin page.
++ *             - 2.2.4.2 Logged in
++ *                     - 2.2.4.2.1 Request admin page for non-admin user.
++ *       - 2.2.5 403 error configuration
++ *             - 2.2.5.1 Check access denied page when setting forced authentication on restricted pages.
++ *             - 2.2.5.2 Keep current access denied page when no previous setting exists.
++ *             - 2.2.5.3 Save previous access denied page.
++ *             - 2.2.5.4 Restore previous access denied page.
++ *   - 2.3 Basic authentication
++ *       - 2.3.1 Request home page without credentials.
++ *       - 2.3.2 Registered user
++ *             - 2.3.2.1 Request home page with wrong password.
++ *             - 2.3.2.2 Request home page with correct password and access disabled.
++ *             - 2.3.2.3 Request home page with correct password and access enabled.
++ *             - 2.3.2.4 Request log-out page.
++ *             - 2.3.2.5 Request home page with credentials for new user.
++ *       - 2.3.3 Guest user
++ *             - 2.3.3.1 Password not set
++ *                     - 2.3.3.1.1 Request home page with empty credentials and access disabled.
++ *                     - 2.3.3.1.2 Request home page with empty credentials and access enabled.
++ *                     - 2.3.3.1.3 Request home page with random credentials and access disabled.
++ *                     - 2.3.3.1.4 Request home page with random credentials and access enabled.
++ *                     - 2.3.3.1.5 Request home page with credentials for new user.
++ *             - 2.3.3.2 Password set and access enabled
++ *                     - 2.3.3.2.1 Request home page with empty credentials.
++ *                     - 2.3.3.2.2 Request home page with random credentials.
++ *                     - 2.3.3.2.3 Request home page with guest credentials.
++ *   - 2.4 Form authentication
++ *       - 2.4.1 Request home page without credentials.
++ *       - 2.4.2 Registered user
++ *             - 2.4.2.1 Request home page with wrong password.
++ *             - 2.4.2.2 Request home page with correct password and access disabled.
++ *             - 2.4.2.3 Request home page with correct password and access enabled.
++ *       - 2.4.3 Guest user
++ *             - 2.4.3.1 Request home page with empty credentials and access disabled.
++ *             - 2.4.3.2 Request home page with random credentials and access disabled.
++ *             - 2.4.3.3 Request home page with random credentials and access enabled.
++ *   - 2.5 Digest authentication
++ *       - 2.5.1 Request home page without credentials.
++ *       - 2.5.2 Registered user with access enabled
++ *             - 2.5.2.1 Unstored password
++ *                     - 2.5.2.1.1 Request home page with basic fall-back.
++ *                     - 2.5.2.1.2 Request home page with form fall-back.
++ *                     - 2.5.2.1.3 Store password with fall-back authentication method.
++ *             - 2.5.2.2 Stored password
++ *                     - 2.5.2.2.1 Request home page with wrong password.
++ *                     - 2.5.2.2.2 Request home page with correct password.
++ *                     - 2.5.2.2.3 Request log-out page.
++ *       - 2.5.3 Guest user with access enabled
++ *             - 2.5.3.1 Password not set
++ *                     - 2.5.3.1.1 Request home page with empty credentials.
++ *                     - 2.5.3.1.2 Request home page with random credentials.
++ *             - 2.5.3.2 Password set
++ *                     - 2.5.3.2.1 Request home page with empty credentials.
++ *                     - 2.5.3.2.2 Request home page with random credentials.
++ *                     - 2.5.3.2.3 Request home page with correct credentials.
+  */
+ 
+ /**
+  * Unit tests for stored_passwords.php.
+  */
+ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => 'stored_passwords.php',
+       'description' => t('Test password storage script. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -150,9 +151,9 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     $this->user = $this->drupalCreateUser();
+@@ -165,7 +166,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Remove all users from realm.
+    */
+-  function testSecureSiteScriptsStoredPasswordsRealm() {
++  public function testSecureSiteScriptsStoredPasswordsRealm() {
+     $command = "$this->stored_passwords $this->realm_arg op=delete";
+     $this->assertTrue(exec($command) == "Removed users from $this->realm.", t('Removing all users from realm.'));
+   }
+@@ -173,7 +174,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Add new user.
+    */
+-  function testSecureSiteScriptsStoredPasswordsAdd() {
++  public function testSecureSiteScriptsStoredPasswordsAdd() {
+     $command = "$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg op=create";
+     $this->assertTrue(exec($command) == 'Added ' . $this->user->name . " to $this->realm.", t('Adding new user.'));
+   }
+@@ -181,7 +182,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Update existing user.
+    */
+-  function testSecureSiteScriptsStoredPasswordsUpdateExisting() {
++  public function testSecureSiteScriptsStoredPasswordsUpdateExisting() {
+     exec("$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg op=create");
+     $command = "$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg";
+     $this->assertTrue(exec($command) == 'Updated ' . $this->user->name . " in $this->realm.", t('Updating existing user.'));
+@@ -190,7 +191,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Update nonexistent user.
+    */
+-  function testSecureSiteScriptsStoredPasswordsUpdateNonexistent() {
++  public function testSecureSiteScriptsStoredPasswordsUpdateNonexistent() {
+     $command = "$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg";
+     $this->assertTrue(exec($command) == $this->user->name . " not found in $this->realm.", t('Updating nonexistent user.'));
+   }
+@@ -198,7 +199,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Remove existing user.
+    */
+-  function testSecureSiteScriptsStoredPasswordsDeleteExisting() {
++  public function testSecureSiteScriptsStoredPasswordsDeleteExisting() {
+     exec("$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg op=create");
+     $command = "$this->stored_passwords $this->name_arg $this->realm_arg op=delete";
+     $this->assertTrue(exec($command) == 'Removed ' . $this->user->name . " from $this->realm.", t('Removing existing user.'));
+@@ -207,7 +208,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Remove nonexistent user.
+    */
+-  function testSecureSiteScriptsStoredPasswordsDeleteNonexistent() {
++  public function testSecureSiteScriptsStoredPasswordsDeleteNonexistent() {
+     $command = "$this->stored_passwords $this->name_arg $this->realm_arg op=delete";
+     $this->assertTrue(exec($command) == $this->user->name . " not found in $this->realm.", t('Removing nonexistent user.'));
+   }
+@@ -215,7 +216,7 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     exec("$this->stored_passwords $this->realm_arg op=delete");
+     parent::tearDown();
+   }
+@@ -225,10 +226,11 @@ class SecureSiteScriptStoredPasswordsUnitTest extends DrupalWebTestCase {
+  * Unit tests for digest_md5.php.
+  */
+ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => 'digest_md5.php',
+       'description' => t('Test digest challenge script. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -237,9 +239,9 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     variable_set('securesite_type', array(SECURESITE_DIGEST));
+@@ -266,14 +268,14 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check digest challenge string.
+    */
+-  function testSecureSiteScriptDigestMD5Challenge() {
++  public function testSecureSiteScriptDigestMD5Challenge() {
+     $this->assertTrue(isset($this->challenge['realm']) && $this->challenge['realm'] == $this->realm && isset($this->challenge['nonce']), t('Checking digest challenge string.'));
+   }
+ 
+   /**
+    * Check response to stored password.
+    */
+-  function testSecureSiteScriptDigestMD5Stored() {
++  public function testSecureSiteScriptDigestMD5Stored() {
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass_raw);
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . ':' . md5('GET:/'));
+     $this->data[] = 'nonce="' . $this->challenge['nonce'] . '"';
+@@ -288,7 +290,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check response to expired challenge.
+    */
+-  function testSecureSiteScriptDigestMD5Expired() {
++  public function testSecureSiteScriptDigestMD5Expired() {
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass_raw);
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . $this->challenge['nonce'] . ':' . md5('GET:/'));
+     $this->data[] = 'nonce="' . $this->challenge['nonce'] . $this->challenge['nonce'] . '"';
+@@ -302,7 +304,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check response to wrong password.
+    */
+-  function testSecureSiteScriptDigestMD5Wrong() {
++  public function testSecureSiteScriptDigestMD5Wrong() {
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass);
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . ':' . md5('GET:/'));
+     $this->data[] = 'nonce="' . $this->challenge['nonce'] . '"';
+@@ -316,7 +318,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check response to unstored password.
+    */
+-  function testSecureSiteScriptDigestMD5Unstored() {
++  public function testSecureSiteScriptDigestMD5Unstored() {
+     exec("$this->stored_passwords realm=" . escapeshellarg($this->realm) . ' op=delete');
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass_raw);
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . ':' . md5('GET:/'));
+@@ -331,7 +333,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check response to stored password with auth quality of protection.
+    */
+-  function testSecureSiteScriptDigestMD5AuthStored() {
++  public function testSecureSiteScriptDigestMD5AuthStored() {
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass_raw);
+     $cnonce = uniqid();
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . ":00000001:$cnonce:auth:" . md5('GET:/'));
+@@ -349,7 +351,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Check response to replay attack with auth quality of protection.
+    */
+-  function testSecureSiteScriptDigestMD5AuthReplay() {
++  public function testSecureSiteScriptDigestMD5AuthReplay() {
+     $ha1 = md5($this->user->name . ':' . $this->challenge['realm'] . ':' . $this->user->pass_raw);
+     $cnonce = uniqid();
+     $response = md5($ha1 . ':' . $this->challenge['nonce'] . ":00000001:$cnonce:auth:" . md5('GET:/'));
+@@ -367,7 +369,7 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     exec("$this->stored_passwords realm=" . escapeshellarg($this->realm) . ' op=delete');
+     parent::tearDown();
+   }
+@@ -377,10 +379,11 @@ class SecureSiteScriptDigestMD5UnitTest extends DrupalWebTestCase {
+  * Unit tests for user_save().
+  */
+ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => 'user_save()',
+       'description' => t('Test password storage when user is added or updated. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -389,9 +392,9 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     variable_set('securesite_type', array(SECURESITE_DIGEST));
+@@ -405,7 +408,7 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+   /**
+    * Add new user.
+    */
+-  function testSecureSiteFunctionUserSaveAdd() {
++  public function testSecureSiteFunctionUserSaveAdd() {
+     $command = "$this->stored_passwords username=" . escapeshellarg($this->user->name) . " $this->pass_arg $this->realm_arg";
+     $this->assertTrue(exec($command) == 'Updated ' . $this->user->name . " in $this->realm.", t('Adding new user.'));
+   }
+@@ -413,7 +416,7 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+   /**
+    * Update user name without changing password.
+    */
+-  function testSecureSiteFunctionUserSaveUpdatePassUnchanged() {
++  public function testSecureSiteFunctionUserSaveUpdatePassUnchanged() {
+     $user = user_save($this->user, array('name' => $this->randomName()));
+     $command = "$this->stored_passwords username=" . escapeshellarg($user->name) . " $this->pass_arg $this->realm_arg";
+     $this->assertTrue(exec($command) == "$user->name not found in $this->realm.", t('Updating user name without changing password.'));
+@@ -422,7 +425,7 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+   /**
+    * Update user name and password.
+    */
+-  function testSecureSiteFunctionUserSaveUpdatePassChanged() {
++  public function testSecureSiteFunctionUserSaveUpdatePassChanged() {
+     $user = user_save($this->user, array('name' => $this->randomName(), 'pass' => user_password()));
+     $old = exec("$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg");
+     $new = exec("$this->stored_passwords username=" . escapeshellarg($user->name) . " $this->pass_arg $this->realm_arg");
+@@ -432,7 +435,7 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     exec("$this->stored_passwords $this->realm_arg op=delete");
+     parent::tearDown();
+   }
+@@ -442,10 +445,11 @@ class SecureSiteFunctionUserSaveUnitTest extends DrupalWebTestCase {
+  * Unit tests for user_load().
+  */
+ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => 'user_load()',
+       'description' => t('Test password storage when user is loaded. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -454,9 +458,9 @@ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     $this->user = $this->drupalCreateUser();
+@@ -470,7 +474,7 @@ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
+   /**
+    * Load user without password.
+    */
+-  function testSecureSiteUserLoadUID() {
++  public function testSecureSiteUserLoadUID() {
+     // Added by sime in D7 upgrade.
+     // @todo Coder module instructs that we should convert "user_load" to "user_load_multiple" if "$this->user->uid" is other than a uid.  To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent. Example: array_shift(user_load_multiple(array(), $this->user->uid)) -- HOWEVER I'm not sure how to do this yet since this is not appararently returning anything.
+     // @todo Look at how user tests work in D7.
+@@ -490,7 +494,7 @@ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
+   /**
+    * Load user with password.
+    */
+-  function testSecureSiteUserLoadPass() {
++  public function testSecureSiteUserLoadPass() {
+     // D6: user_load(array('uid' => $this->user->uid, 'pass' => $this->user->pass_raw));
+     // sime: D6 code doesn't return anything so I assume no array shifting or reset() is needed for D7 code.
+     user_load_multiple(array($this->user->uid), array('pass' => $this->user->pass_raw));
+@@ -501,7 +505,7 @@ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     exec("$this->stored_passwords $this->realm_arg op=delete");
+     parent::tearDown();
+   }
+@@ -511,10 +515,11 @@ class SecureSiteFunctionUserLoadUnitTest extends DrupalWebTestCase {
+  * Unit test for user_delete().
+  */
+ class SecureSiteFunctionUserDeleteUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => 'user_delete()',
+       'description' => t('Test password removal when user is deleted. Digest scripts must be configured on the live site before this test can be run.'),
+@@ -523,9 +528,9 @@ class SecureSiteFunctionUserDeleteUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     variable_set('securesite_type', array(SECURESITE_DIGEST));
+@@ -539,7 +544,7 @@ class SecureSiteFunctionUserDeleteUnitTest extends DrupalWebTestCase {
+   /**
+    * Remove user.
+    */
+-  function testSecureSiteFunctionUserDelete() {
++  public function testSecureSiteFunctionUserDelete() {
+     user_cancel(array(), $this->user->uid, $method = 'user_cancel_delete');
+     $command = "$this->stored_passwords $this->name_arg $this->pass_arg $this->realm_arg";
+     $this->assertTrue(exec($command) == $this->user->name . " not found in $this->realm.", t('Removing user.'));
+@@ -550,10 +555,11 @@ class SecureSiteFunctionUserDeleteUnitTest extends DrupalWebTestCase {
+  * Unit tests for _securesite_forced().
+  */
+ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => '_securesite_forced()',
+       'description' => t('Check forced authentication.'),
+@@ -562,9 +568,9 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     module_load_include('inc', 'securesite');
+   }
+@@ -572,14 +578,14 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output without forced authentication.
+    */
+-  function testSecureSiteFunctionForcedDisabled() {
++  public function testSecureSiteFunctionForcedDisabled() {
+     $this->assertFalse(_securesite_forced(), t('Checking output without forced authentication.'));
+   }
+ 
+   /**
+    * Check output with authentication always forced.
+    */
+-  function testSecureSiteFunctionForcedAlways() {
++  public function testSecureSiteFunctionForcedAlways() {
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+     $this->assertTrue(_securesite_forced(), t('Checking output with authentication always forced.'));
+   }
+@@ -587,7 +593,7 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with authentication forced when site is off line.
+    */
+-  function testSecureSiteFunctionForcedOffline() {
++  public function testSecureSiteFunctionForcedOffline() {
+     variable_set('securesite_enabled', SECURESITE_OFFLINE);
+     $this->assertFalse(_securesite_forced(), t('Checking output for on-line site with authentication forced when site is off line.'));
+     variable_set('site_offline', TRUE);
+@@ -597,7 +603,7 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with authentication forced on restricted pages.
+    */
+-  function testSecureSiteFunctionForced403() {
++  public function testSecureSiteFunctionForced403() {
+     variable_set('securesite_enabled', SECURESITE_403);
+     variable_set('securesite_403', variable_get('site_403', ''));
+     variable_set('site_403', 'securesite_403');
+@@ -607,7 +613,7 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     variable_del('securesite_enabled');
+     variable_del('site_offline');
+     variable_del('site_403');
+@@ -620,10 +626,11 @@ class SecureSiteFunctionForcedUnitTest extends DrupalWebTestCase {
+  * Unit tests for _securesite_digest_validate().
+  */
+ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => '_securesite_digest_validate()',
+       'description' => t('Test digest header strings. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -632,9 +639,9 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     module_load_include('inc', 'securesite');
+@@ -644,7 +651,7 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output without input.
+    */
+-  function testSecureSiteFunctionDigestValidateNull() {
++  public function testSecureSiteFunctionDigestValidateNull() {
+     $header = _securesite_digest_validate($status);
+     $this->assertTrue(!isset($header) && !isset($status), t('Checking output without input.'));
+   }
+@@ -652,7 +659,7 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output without data.
+    */
+-  function testSecureSiteFunctionDigestValidateEmpty() {
++  public function testSecureSiteFunctionDigestValidateEmpty() {
+     _securesite_digest_validate($status, array('realm' => $this->realm));
+     $this->assertTrue(strpos(_securesite_digest_validate($status), 'WWW-Authenticate') === 0 && $status === 0, t('Checking output without data.'));
+   }
+@@ -660,7 +667,7 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with data.
+    */
+-  function testSecureSiteFunctionDigestValidateData() {
++  public function testSecureSiteFunctionDigestValidateData() {
+     variable_set('securesite_type', array(SECURESITE_DIGEST));
+     $user = $this->drupalCreateUser();
+     module_load_include('inc', 'securesite');
+@@ -680,7 +687,7 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     variable_del('securesite_type');
+     parent::tearDown();
+   }
+@@ -690,10 +697,11 @@ class SecureSiteFunctionDigestValidateUnitTest extends DrupalWebTestCase {
+  * Unit tests for _securesite_fake_realm().
+  */
+ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => '_securesite_fake_realm()',
+       'description' => t('Test log-out workaround for Internet Explorer and Opera.'),
+@@ -702,9 +710,9 @@ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     module_load_include('inc', 'securesite');
+     $this->user_agent = $_SERVER['HTTP_USER_AGENT'];
+@@ -714,14 +722,14 @@ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
+   /**
+    * Check realm with normal browser.
+    */
+-  function testSecureSiteFunctionFakeRealmNormal() {
++  public function testSecureSiteFunctionFakeRealmNormal() {
+     $this->assertTrue($this->fake_realm == _securesite_fake_realm(), t('Checking realm with normal browser.'));
+   }
+ 
+   /**
+    * Check realm with Internet Explorer.
+    */
+-  function testSecureSiteFunctionFakeRealmMSIE() {
++  public function testSecureSiteFunctionFakeRealmMSIE() {
+     $_SERVER['HTTP_USER_AGENT'] = 'msie';
+     $this->assertTrue($this->fake_realm != _securesite_fake_realm(), t('Checking realm with Internet Explorer.'));
+   }
+@@ -729,7 +737,7 @@ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
+   /**
+    * Check realm with Opera.
+    */
+-  function testSecureSiteFunctionFakeRealmOpera() {
++  public function testSecureSiteFunctionFakeRealmOpera() {
+     $_SERVER['HTTP_USER_AGENT'] = 'opera';
+     $this->assertTrue($this->fake_realm != _securesite_fake_realm(), t('Checking realm with Opera.'));
+   }
+@@ -737,7 +745,7 @@ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $_SERVER['HTTP_USER_AGENT'] = $this->user_agent;
+     parent::tearDown();
+   }
+@@ -747,10 +755,11 @@ class SecureSiteFunctionFakeRealmUnitTest extends DrupalWebTestCase {
+  * Unit tests for _securesite_dialog_page().
+  */
+ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => '_securesite_dialog_page()',
+       'description' => t('Test dialog page output.'),
+@@ -759,9 +768,9 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     module_load_include('inc', 'securesite');
+   }
+@@ -769,7 +778,7 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with both log-in and password reset disabled.
+    */
+-  function testSecureSiteDialogPageNeither() {
++  public function testSecureSiteDialogPageNeither() {
+     variable_set('securesite_reset_form', '');
+     $page = _securesite_dialog_page();
+     $login = strpos($page, 'id="securesite-user-login"') === FALSE;
+@@ -781,7 +790,7 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with log-in enabled and password reset disabled.
+    */
+-  function testSecureSiteDialogPageLogin() {
++  public function testSecureSiteDialogPageLogin() {
+     variable_set('securesite_type', array(SECURESITE_FORM));
+     variable_set('securesite_reset_form', '');
+     $page = _securesite_dialog_page();
+@@ -794,7 +803,7 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with log-in disabled and password reset enabled.
+    */
+-  function testSecureSiteDialogPageReset() {
++  public function testSecureSiteDialogPageReset() {
+     $page = _securesite_dialog_page();
+     $login = strpos($page, 'id="securesite-user-login"') === FALSE;
+     $reset = strpos($page, 'id="securesite-user-pass"') === FALSE;
+@@ -805,7 +814,7 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   /**
+    * Check output with both log-in and password reset enabled.
+    */
+-  function testSecureSiteDialogPageBoth() {
++  public function testSecureSiteDialogPageBoth() {
+     variable_set('securesite_type', array(SECURESITE_FORM));
+     $page = _securesite_dialog_page();
+     $login = strpos($page, 'id="securesite-user-login"') === FALSE;
+@@ -817,7 +826,7 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     variable_del('securesite_type');
+     variable_del('securesite_reset_form');
+     drupal_clean_css_identifier(NULL, TRUE);
+@@ -829,10 +838,11 @@ class SecureSiteFunctionDialogPageUnitTest extends DrupalWebTestCase {
+  * Functional tests for conflicts between guest name and user names.
+  */
+ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Name conflict prevention'),
+       'description' => t('Test prevention of conflicts between guest name and user names.'),
+@@ -841,9 +851,9 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->guest = $this->randomName();
+@@ -854,7 +864,7 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Register user with guest name.
+    */
+-  function testSecureSiteNameConflictUserRegister() {
++  public function testSecureSiteNameConflictUserRegister() {
+     $this->drupalPost('user/register', array('name' => $this->guest, 'mail' => $this->guest . '@example.com'), 'Create new account');
+     $this->assertText("The name $this->guest is being used as the " . variable_get('site_name', 'Drupal') . " guest name.", t('Registering user with guest name.'));
+     $this->assertTrue(db_query_range("SELECT uid FROM {users} WHERE name = :name", array(':name' => $this->guest))->fetchField() === FALSE, t('Checking for user with guest name.'));
+@@ -863,7 +873,7 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Create user with guest name.
+    */
+-  function testSecureSiteNameConflictUserCreate() {
++  public function testSecureSiteNameConflictUserCreate() {
+     $this->drupalLogin($this->user);
+     $this->drupalPost('admin/user/user/create', array('name' => $this->guest, 'mail' => $this->guest . '@example.com', 'pass[pass1]' => $this->user->pass_raw, 'pass[pass2]' => $this->user->pass_raw), 'Create new account');
+     $this->assertText("The name $this->guest is being used as the " . variable_get('site_name', 'Drupal') . " guest name.", t('Creating user with guest name.'));
+@@ -873,7 +883,7 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Set user name to guest name.
+    */
+-  function testSecureSiteNameConflictUserEdit() {
++  public function testSecureSiteNameConflictUserEdit() {
+     $this->drupalLogin($this->user);
+     $this->drupalPost('user/' . $this->user->uid . '/edit', array('name' => $this->guest), 'Save');
+     $this->assertText("The name $this->guest is being used as the " . variable_get('site_name', 'Drupal') . " guest name.", t('Setting user name to guest name.'));
+@@ -883,7 +893,7 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Set guest name to user name.
+    */
+-  function testSecureSiteNameConflictGuest() {
++  public function testSecureSiteNameConflictGuest() {
+     $this->drupalLogin($this->user);
+     $this->drupalPost('admin/config/securesite', array('securesite_guest_name' => $this->user->name), 'Save configuration');
+     $this->assertText('The name ' . $this->user->name . ' belongs to a registered user.', t('Setting guest name to user name.'));
+@@ -895,10 +905,11 @@ class SecureSiteNameConflictFunctionalTest extends DrupalWebTestCase {
+  * Functional test for page request without forced authentication.
+  */
+ class SecureSiteForceDisabledFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Forced authentication: Disabled'),
+       'description' => t('Test page request without forced authentication.'),
+@@ -907,16 +918,16 @@ class SecureSiteForceDisabledFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+   }
+ 
+   /**
+    * Request home page without forced authentication.
+    */
+-  function testSecureSiteForceDisabled() {
++  public function testSecureSiteForceDisabled() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page.'));
+   }
+@@ -926,10 +937,11 @@ class SecureSiteForceDisabledFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for page requests with authentication always forced.
+  */
+ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Forced authentication: Always'),
+       'description' => t('Test page requests with authentication always forced.'),
+@@ -938,9 +950,9 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     $this->user = $this->drupalCreateUser();
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+@@ -950,7 +962,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page.
+    */
+-  function testSecureSiteForceAlwaysNobody() {
++  public function testSecureSiteForceAlwaysNobody() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page.'));
+   }
+@@ -958,7 +970,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page for logged in user.
+    */
+-  function testSecureSiteForceAlwaysUser() {
++  public function testSecureSiteForceAlwaysUser() {
+     variable_del('securesite_enabled');
+     $this->drupalLogin($this->user);
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+@@ -969,7 +981,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page for logged in guest.
+    */
+-  function testSecureSiteForceAlwaysGuest() {
++  public function testSecureSiteForceAlwaysGuest() {
+     $this->curl_options[CURLOPT_USERPWD] = ':';
+     $this->drupalHead(NULL);
+     unset($this->curl_options[CURLOPT_USERPWD]);
+@@ -982,7 +994,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Try valid password reset URL.
+    */
+-  function testSecureSiteForceAlwaysResetValid() {
++  public function testSecureSiteForceAlwaysResetValid() {
+     sleep(1); // Password reset URL must be created at least one second after last log-in.
+     $reset = user_pass_reset_url(array_shift(user_load_multiple(array(), $this->user->uid)));
+     sleep(1); // Password reset URL must be used at least one second after it is created.
+@@ -994,7 +1006,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Try invalid password reset URL.
+    */
+-  function testSecureSiteForceAlwaysResetInvalid() {
++  public function testSecureSiteForceAlwaysResetInvalid() {
+     $this->drupalGet('user/reset/' . $this->user->uid);
+     $this->assertResponse(200, t('Trying invalid password reset URL.'));
+     $this->assertText('You have tried to use an invalid one-time log-in link.', t('Checking for error message.'));
+@@ -1003,7 +1015,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Submit password reset form.
+    */
+-  function testSecureSiteForceAlwaysResetSubmit() {
++  public function testSecureSiteForceAlwaysResetSubmit() {
+     $this->drupalPost(NULL, array('name' => $this->user->name), 'E-mail new password');
+     $this->assertResponse(200, t('Submitting password reset form.'));
+     $this->assertText('Further instructions have been sent to your e-mail address.', t('Checking for password reset message.'));
+@@ -1012,7 +1024,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Try cron.php with all authentication types enabled.
+    */
+-  function testSecureSiteForceAlwaysCronAll() {
++  public function testSecureSiteForceAlwaysCronAll() {
+     variable_set('securesite_type', array(SECURESITE_FORM, SECURESITE_BASIC, SECURESITE_DIGEST));
+     $cron_last = variable_get('cron_last', NULL);
+     $this->drupalGet(url(NULL, array('absolute' => TRUE)) . 'cron.php');
+@@ -1022,7 +1034,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Try cron.php with only form authentication enabled.
+    */
+-  function testSecureSiteForceAlwaysCronForm() {
++  public function testSecureSiteForceAlwaysCronForm() {
+     variable_set('securesite_type', array(SECURESITE_FORM));
+     $cron_last = variable_get('cron_last', NULL);
+     $this->drupalGet(url(NULL, array('absolute' => TRUE)) . 'cron.php');
+@@ -1032,7 +1044,7 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $this->curl_options = array();
+     parent::tearDown();
+   }
+@@ -1043,10 +1055,11 @@ class SecureSiteForceAlwaysFunctionalTest extends DrupalWebTestCase {
+  * off line.
+  */
+ class SecureSiteForceOfflineFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Forced authentication: Site off line'),
+       'description' => t('Test page requests with authentication forced when site is off line.'),
+@@ -1055,9 +1068,9 @@ class SecureSiteForceOfflineFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     variable_set('securesite_enabled', SECURESITE_OFFLINE);
+   }
+@@ -1065,7 +1078,7 @@ class SecureSiteForceOfflineFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request on-line home page.
+    */
+-  function testSecureSiteForceOfflineNormal() {
++  public function testSecureSiteForceOfflineNormal() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting on-line home page.'));
+   }
+@@ -1073,7 +1086,7 @@ class SecureSiteForceOfflineFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request off-line home page.
+    */
+-  function testSecureSiteForceOfflineMaintenance() {
++  public function testSecureSiteForceOfflineMaintenance() {
+     variable_set('site_offline', TRUE);
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting off-line home page.'));
+@@ -1085,10 +1098,11 @@ class SecureSiteForceOfflineFunctionalTest extends DrupalWebTestCase {
+  * pages.
+  */
+ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Forced authentication: Restricted pages'),
+       'description' => t('Test page requests with authentication forced on restricted pages.'),
+@@ -1097,9 +1111,9 @@ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     variable_set('securesite_enabled', SECURESITE_403);
+     variable_set('securesite_403', variable_get('site_403', ''));
+@@ -1109,7 +1123,7 @@ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page.
+    */
+-  function testSecureSiteForce403Normal() {
++  public function testSecureSiteForce403Normal() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page.'));
+   }
+@@ -1117,7 +1131,7 @@ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request admin page.
+    */
+-  function testSecureSiteForce403Restricted() {
++  public function testSecureSiteForce403Restricted() {
+     $this->drupalHead('admin');
+     $this->assertResponse(401, t('Requesting admin page.'));
+   }
+@@ -1125,7 +1139,7 @@ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request admin page for non-admin user.
+    */
+-  function testSecureSiteForce403User() {
++  public function testSecureSiteForce403User() {
+     $this->drupalLogin($this->drupalCreateUser());
+     $this->drupalHead('admin');
+     $this->assertResponse(403, t('Requesting admin page for non-admin user.'));
+@@ -1136,10 +1150,11 @@ class SecureSiteForce403FunctionalTest extends DrupalWebTestCase {
+  * Functional tests for configuring access denied page.
+  */
+ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => '403 error configuration',
+       'description' => t('Test configuration for access denied page.'),
+@@ -1148,9 +1163,9 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     $this->drupalLogin($this->drupalCreateUser(array('administer site configuration')));
+   }
+@@ -1158,7 +1173,7 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Check access denied page when setting forced authentication on restricted pages.
+    */
+-  function testSecureSiteConfig403Save() {
++  public function testSecureSiteConfig403Save() {
+     $this->drupalPost('admin/config/securesite', array('securesite_enabled' => SECURESITE_403), 'Save configuration');
+     $this->assertTrue(variable_get('site_403', '') == 'securesite_403', t('Checking access denied page when setting forced authentication on restricted pages.'));
+   }
+@@ -1166,7 +1181,7 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Keep current access denied page when no previous setting exists.
+    */
+-  function testSecureSiteConfig403ResetCurrent() {
++  public function testSecureSiteConfig403ResetCurrent() {
+     variable_set('site_403', 'site_403');
+     $this->drupalPost('admin/config/securesite', array(), 'Reset to defaults');
+     $this->assertTrue(variable_get('site_403', '') == 'site_403', t('Keeping current access denied page when no previous setting exists.'));
+@@ -1175,7 +1190,7 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Save previous access denied page.
+    */
+-  function testSecureSiteConfig403Page() {
++  public function testSecureSiteConfig403Page() {
+     $this->drupalPost('admin/config/development/logging', array('site_403' => 'site_403'), 'Save configuration');
+     variable_set('securesite_enabled', SECURESITE_403);
+     $this->drupalPost('admin/config/development/logging', array(), 'Save configuration');
+@@ -1185,7 +1200,7 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Restore previous access denied page.
+    */
+-  function testSecureSiteConfig403ResetPrevious() {
++  public function testSecureSiteConfig403ResetPrevious() {
+     variable_set('securesite_403', 'site_403');
+     $this->drupalPost('admin/config/development/logging', array(), 'Reset to defaults');
+     $this->assertTrue(variable_get('site_403', '') == 'site_403', t('Restoring previous access denied page.'));
+@@ -1194,7 +1209,7 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     variable_del('securesite_enabled');
+     variable_del('securesite_403');
+     variable_del('site_403');
+@@ -1206,10 +1221,11 @@ class SecureSiteConfig403FunctionalTest extends DrupalWebTestCase {
+  * Functional test for basic authentication without credentials.
+  */
+ class SecureSiteTypeBasicNoneFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Basic authentication: No credentials'),
+       'description' => t('Test HTTP basic authentication without credentials.'),
+@@ -1218,9 +1234,9 @@ class SecureSiteTypeBasicNoneFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+   }
+@@ -1228,7 +1244,7 @@ class SecureSiteTypeBasicNoneFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page without credentials.
+    */
+-  function testSecureSiteTypeBasicNone() {
++  public function testSecureSiteTypeBasicNone() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page.'));
+     $found_scheme = FALSE;
+@@ -1243,10 +1259,11 @@ class SecureSiteTypeBasicNoneFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for basic authentication with user credentials.
+  */
+ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Basic authentication: User credentials'),
+       'description' => t('Test HTTP basic authentication with user credentials.'),
+@@ -1255,9 +1272,9 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->normal_user = $this->drupalCreateUser();
+@@ -1269,7 +1286,7 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with wrong password.
+    */
+-  function testSecureSiteTypeBasicUserWrong() {
++  public function testSecureSiteTypeBasicUserWrong() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->access_user->name . ':' . $this->access_user->pass;
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page with wrong password.'));
+@@ -1278,7 +1295,7 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with correct password and access disabled.
+    */
+-  function testSecureSiteTypeBasicUserNoAccess() {
++  public function testSecureSiteTypeBasicUserNoAccess() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->normal_user->name . ':' . $this->normal_user->pass_raw;
+     $this->drupalGet(NULL);
+     $this->assertResponse(403, t('Requesting home page with correct password and access disabled.'));
+@@ -1289,7 +1306,7 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with correct password and access enabled.
+    */
+-  function testSecureSiteTypeBasicUserAccess() {
++  public function testSecureSiteTypeBasicUserAccess() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->access_user->name . ':' . $this->access_user->pass_raw;
+     $this->drupalGet(NULL);
+     $this->assertResponse(200, t('Requesting home page with correct password and access enabled.'));
+@@ -1303,7 +1320,7 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with credentials for new user.
+    */
+-  function testSecureSiteTypeBasicUserChange() {
++  public function testSecureSiteTypeBasicUserChange() {
+     $this->drupalLogin($this->drupalCreateUser());
+     $this->curl_options[CURLOPT_USERPWD] = $this->access_user->name . ':' . $this->access_user->pass_raw;
+     $this->drupalGet(NULL);
+@@ -1314,7 +1331,7 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $this->curl_options = array();
+     parent::tearDown();
+   }
+@@ -1324,10 +1341,11 @@ class SecureSiteTypeBasicUserFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for basic authentication with guest credentials unset.
+  */
+ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Basic authentication: Guest credentials unset'),
+       'description' => t('Test HTTP basic authentication with guest credentials unset.'),
+@@ -1336,9 +1354,9 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     // Should work with all authentication methods enabled.
+@@ -1349,7 +1367,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials and access disabled.
+    */
+-  function testSecureSiteTypeBasicGuestUnsetEmptyNoAccess() {
++  public function testSecureSiteTypeBasicGuestUnsetEmptyNoAccess() {
+     user_role_revoke_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->drupalGet(NULL);
+     $this->assertResponse(403, t('Requesting home page with empty credentials and guest access disabled.'));
+@@ -1360,7 +1378,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials and access enabled.
+    */
+-  function testSecureSiteTypeBasicGuestUnsetEmptyAccess() {
++  public function testSecureSiteTypeBasicGuestUnsetEmptyAccess() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page with empty credentials and guest access enabled.'));
+   }
+@@ -1368,7 +1386,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials and access disabled.
+    */
+-  function testSecureSiteTypeBasicGuestUnsetRandomNoAccess() {
++  public function testSecureSiteTypeBasicGuestUnsetRandomNoAccess() {
+     user_role_revoke_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->curl_options[CURLOPT_USERPWD] = $this->randomName() . ':' . user_password();
+     $this->drupalGet(NULL);
+@@ -1378,7 +1396,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials and access enabled.
+    */
+-  function testSecureSiteTypeBasicGuestUnsetRandomAccess() {
++  public function testSecureSiteTypeBasicGuestUnsetRandomAccess() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->randomName() . ':' . user_password();
+     $this->drupalGet(NULL);
+     $this->assertResponse(200, t('Requesting home page with random credentials and guest access enabled.'));
+@@ -1387,7 +1405,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with credentials for new user.
+    */
+-  function testSecureSiteTypeBasicGuestUnsetChange() {
++  public function testSecureSiteTypeBasicGuestUnsetChange() {
+     $user = $this->drupalCreateUser();
+     $this->drupalHead(NULL);
+     $this->curl_options[CURLOPT_USERPWD] = "$user->name:$user->pass_raw";
+@@ -1398,7 +1416,7 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $this->curl_options = array();
+     parent::tearDown();
+   }
+@@ -1408,10 +1426,11 @@ class SecureSiteTypeBasicGuestUnsetFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for basic authentication with guest credentials set.
+  */
+ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Basic authentication: Guest credentials set'),
+       'description' => t('Test HTTP basic authentication with guest credentials set.'),
+@@ -1420,9 +1439,9 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->name = $this->randomName();
+@@ -1436,7 +1455,7 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials.
+    */
+-  function testSecureSiteTypeBasicGuestSetEmpty() {
++  public function testSecureSiteTypeBasicGuestSetEmpty() {
+     $this->curl_options[CURLOPT_USERPWD] = ':';
+     $this->drupalHead(NULL);
+     $this->assertResponse(403, t('Requesting home page with empty credentials.'));
+@@ -1447,7 +1466,7 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials.
+    */
+-  function testSecureSiteTypeBasicGuestSetWrong() {
++  public function testSecureSiteTypeBasicGuestSetWrong() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->randomName() . ':' . user_password();
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page with random credentials.'));
+@@ -1456,7 +1475,7 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with guest credentials.
+    */
+-  function testSecureSiteTypeBasicGuestSetCorrect() {
++  public function testSecureSiteTypeBasicGuestSetCorrect() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->name . ':' . $this->pass;
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page with guest credentials.'));
+@@ -1465,7 +1484,7 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $this->curl_options = array();
+     parent::tearDown();
+   }
+@@ -1475,10 +1494,11 @@ class SecureSiteTypeBasicGuestSetFunctionalTest extends DrupalWebTestCase {
+  * Functional test for form authentication without credentials.
+  */
+ class SecureSiteTypeFormNoneFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Form authentication: No credentials'),
+       'description' => t('Test HTML form authentication without credentials.'),
+@@ -1487,9 +1507,9 @@ class SecureSiteTypeFormNoneFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+     // Should work with all authentication methods enabled.
+@@ -1499,7 +1519,7 @@ class SecureSiteTypeFormNoneFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page without credentials.
+    */
+-  function testSecureSiteTypeFormNone() {
++  public function testSecureSiteTypeFormNone() {
+     $this->drupalGet(NULL);
+     $this->assertFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page without credentials.'));
+   }
+@@ -1509,10 +1529,11 @@ class SecureSiteTypeFormNoneFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for form authentication with user credentials.
+  */
+ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Form authentication: User credentials'),
+       'description' => t('Test HTML form authentication with user credentials.'),
+@@ -1521,9 +1542,9 @@ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->normal_user = $this->drupalCreateUser();
+@@ -1536,7 +1557,7 @@ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with wrong password.
+    */
+-  function testSecureSiteTypeFormUserWrong() {
++  public function testSecureSiteTypeFormUserWrong() {
+     $this->drupalPost('', array('name' => $this->access_user->name, 'pass' => $this->access_user->pass), 'Log in');
+     $this->assertFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with wrong password.'));
+     $this->assertText('Unrecognized user name and/or password.', t('Checking for error message when password is wrong.'));
+@@ -1545,7 +1566,7 @@ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with correct password and access disabled.
+    */
+-  function testSecureSiteTypeFormUserNoAccess() {
++  public function testSecureSiteTypeFormUserNoAccess() {
+     $this->drupalPost('', array('name' => $this->normal_user->name, 'pass' => $this->normal_user->pass_raw), 'Log in');
+     $this->assertNoFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with correct password and access disabled.'));
+     $this->assertText('You have not been authorized to log in to secured pages.', t('Checking for access denied message when password is correct and access is disabled.'));
+@@ -1554,7 +1575,7 @@ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with correct password and access enabled.
+    */
+-  function testSecureSiteTypeFormUserAccess() {
++  public function testSecureSiteTypeFormUserAccess() {
+     $this->drupalPost('', array('name' => $this->access_user->name, 'pass' => $this->access_user->pass_raw), 'Log in');
+     $this->assertNoFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with correct password and access enabled.'));
+     $this->assertText($this->access_user->name, t('Checking for user name when password is correct and access is enabled.'));
+@@ -1567,10 +1588,11 @@ class SecureSiteTypeFormUserFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for form authentication with guest credentials.
+  */
+ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Form authentication: Guest credentials'),
+       'description' => t('Test HTML form authentication with guest credentials.'),
+@@ -1579,9 +1601,9 @@ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+     // Should work with all authentication methods enabled.
+@@ -1591,7 +1613,7 @@ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials and access disabled.
+    */
+-  function testSecureSiteTypeFormGuestUnsetEmptyNoAccess() {
++  public function testSecureSiteTypeFormGuestUnsetEmptyNoAccess() {
+     $this->drupalPost('', array('name' => '', 'pass' => ''), 'Log in');
+     $this->assertNoFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with empty credentials and guest access disabled.'));
+     $this->assertText('Anonymous users are not allowed to log in to secured pages.', t('Checking for access denied message when guest access is disabled and credentials are empty.'));
+@@ -1600,7 +1622,7 @@ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials and access disabled.
+    */
+-  function testSecureSiteTypeFormGuestUnsetRandomNoAccess() {
++  public function testSecureSiteTypeFormGuestUnsetRandomNoAccess() {
+     $this->drupalPost('', array('name' => $this->randomName(), 'pass' => user_password()), 'Log in');
+     $this->assertFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with random credentials and guest access disabled.'));
+     $this->assertText('Unrecognized user name and/or password.', t('Checking for error message when guest access is disabled and random password is given.'));
+@@ -1609,7 +1631,7 @@ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials and access enabled.
+    */
+-  function testSecureSiteTypeFormGuestUnsetRandomAccess() {
++  public function testSecureSiteTypeFormGuestUnsetRandomAccess() {
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+     $this->drupalPost('', array('name' => $this->randomName(), 'pass' => user_password()), 'Log in');
+     $this->assertNoFieldByXPath('//form[@id="securesite-user-login"]', '', t('Requesting home page with random credentials and guest access enabled.'));
+@@ -1621,10 +1643,11 @@ class SecureSiteTypeFormGuestFunctionalTest extends DrupalWebTestCase {
+  * Functional test for digest authentication without credentials.
+  */
+ class SecureSiteTypeDigestNoneFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Digest authentication: No credentials'),
+       'description' => t('Test HTTP digest authentication without credentials. Digest scripts must be configured on the live site before this test is run.'),
+@@ -1633,9 +1656,9 @@ class SecureSiteTypeDigestNoneFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+@@ -1646,7 +1669,7 @@ class SecureSiteTypeDigestNoneFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page without credentials.
+    */
+-  function testSecureSiteTypeDigestNone() {
++  public function testSecureSiteTypeDigestNone() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page without credentials.'));
+     $challenge = array();
+@@ -1663,10 +1686,11 @@ class SecureSiteTypeDigestNoneFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for digest authentication with user credentials.
+  */
+ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Digest authentication: User credentials unstored'),
+       'description' => t('Test HTTP digest authentication with unstored user credentials. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -1675,9 +1699,9 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     $this->user = $this->drupalCreateUser(array('access secured pages'));
+@@ -1691,7 +1715,7 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with basic fall-back.
+    */
+-  function testSecureSiteTypeDigestUserUnstoredBasic() {
++  public function testSecureSiteTypeDigestUserUnstoredBasic() {
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page with basic fall-back.'));
+     $found_scheme = FALSE;
+@@ -1704,7 +1728,7 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with form fall-back.
+    */
+-  function testSecureSiteTypeDigestUserUnstoredForm() {
++  public function testSecureSiteTypeDigestUserUnstoredForm() {
+     variable_set('securesite_type', array(SECURESITE_FORM, SECURESITE_DIGEST));
+     $this->drupalGet(NULL);
+     $this->assertResponse(200, t('Requesting home page with form fall-back.'));
+@@ -1714,7 +1738,7 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Store password with fall-back authentication method.
+    */
+-  function testSecureSiteTypeDigestUserUnstoredStore() {
++  public function testSecureSiteTypeDigestUserUnstoredStore() {
+     $this->curl_options[CURLOPT_HTTPAUTH] = CURLAUTH_DIGEST | CURLAUTH_BASIC;
+     $this->drupalHead(NULL);
+     $this->curlClose();
+@@ -1728,7 +1752,7 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     user_cancel(array(), $this->user->uid, $method = 'user_cancel_delete');
+     parent::tearDown();
+   }
+@@ -1738,10 +1762,11 @@ class SecureSiteTypeDigestUserUnstoredFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for digest authentication with user credentials.
+  */
+ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Digest authentication: User credentials stored'),
+       'description' => t('Test HTTP digest authentication with stored user credentials. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -1750,9 +1775,9 @@ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     variable_set('securesite_enabled', SECURESITE_ALWAYS);
+@@ -1765,7 +1790,7 @@ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with wrong password.
+    */
+-  function testSecureSiteTypeDigestUserStoredWrong() {
++  public function testSecureSiteTypeDigestUserStoredWrong() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->user->name . ':' . $this->user->pass;
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page with wrong password.'));
+@@ -1774,7 +1799,7 @@ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with correct password.
+    */
+-  function testSecureSiteTypeDigestUserStoredCorrect() {
++  public function testSecureSiteTypeDigestUserStoredCorrect() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->user->name . ':' . $this->user->pass_raw;
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page with correct password.'));
+@@ -1788,7 +1813,7 @@ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     user_cancel(array(), $this->user->uid, $method = 'user_cancel_delete');
+     parent::tearDown();
+   }
+@@ -1798,10 +1823,11 @@ class SecureSiteTypeDigestUserStoredFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for digest authentication with guest credentials unset.
+  */
+ class SecureSiteTypeDigestGuestUnsetFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Digest authentication: Guest credentials unset'),
+       'description' => t('Test HTTP digest authentication with guest credentials unset. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -1810,9 +1836,9 @@ class SecureSiteTypeDigestGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+@@ -1825,7 +1851,7 @@ class SecureSiteTypeDigestGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials.
+    */
+-  function testSecureSiteTypeDigestGuestUnsetEmpty() {
++  public function testSecureSiteTypeDigestGuestUnsetEmpty() {
+     $this->curl_options[CURLOPT_USERPWD] = ':';
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page with empty credentials.'));
+@@ -1835,7 +1861,7 @@ class SecureSiteTypeDigestGuestUnsetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials.
+    */
+-  function testSecureSiteTypeDigestGuestUnsetRandom() {
++  public function testSecureSiteTypeDigestGuestUnsetRandom() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->randomName() . ':' . user_password();
+     $this->drupalHead(NULL);
+     $this->assertResponse(200, t('Requesting home page with random credentials.'));
+@@ -1847,10 +1873,11 @@ class SecureSiteTypeDigestGuestUnsetFunctionalTest extends DrupalWebTestCase {
+  * Functional tests for digest authentication with guest credentials set.
+  */
+ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
++
+   /**
+    * Implements getInfo().
+    */
+-  function getInfo() {
++  public static function getInfo() {
+     return array(
+       'name' => t('Digest authentication: Guest credentials set'),
+       'description' => t('Test HTTP digest authentication with guest credentials set. Digest scripts must be configured on the live site before these tests can be run.'),
+@@ -1859,9 +1886,9 @@ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
+   }
+ 
+   /**
+-   * Implements setUp().
++   * {@inheritdoc}
+    */
+-  function setUp() {
++  public function setUp() {
+     parent::setUp('securesite');
+     _securesite_copy_script_config($this);
+     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access secured pages'));
+@@ -1881,7 +1908,7 @@ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with empty credentials.
+    */
+-  function testSecureSiteDigestGuestSetEmpty() {
++  public function testSecureSiteDigestGuestSetEmpty() {
+     $this->curl_options[CURLOPT_USERPWD] = ':';
+     $this->drupalHead(NULL);
+     $this->assertResponse(403, t('Requesting home page with empty credentials.'));
+@@ -1890,7 +1917,7 @@ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with random credentials.
+    */
+-  function testSecureSiteDigestGuestSetRandom() {
++  public function testSecureSiteDigestGuestSetRandom() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->randomName() . ':' . user_password();
+     $this->drupalHead(NULL);
+     $this->assertResponse(401, t('Requesting home page with random credentials.'));
+@@ -1899,7 +1926,7 @@ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Request home page with guest credentials.
+    */
+-  function testSecureSiteDigestGuestSetCorrect() {
++  public function testSecureSiteDigestGuestSetCorrect() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->guest_name . ':' . $this->guest_pass;
+     $this->drupalGet(NULL);
+     $this->assertResponse(200, t('Requesting home page with guest credentials.'));
+@@ -1911,7 +1938,7 @@ class SecureSiteTypeDigestGuestSetFunctionalTest extends DrupalWebTestCase {
+   /**
+    * Implements tearDown().
+    */
+-  function tearDown() {
++  public function tearDown() {
+     $this->curl_options[CURLOPT_USERPWD] = $this->user->name . ':' . $this->user->pass_raw;
+     $this->drupalPost('admin/config/securesite', array(), 'Reset to defaults');
+     _securesite_copy_script_config($this);
+@@ -1931,12 +1958,12 @@ function _securesite_copy_script_config($object) {
+   global $conf, $db_prefix;
+   $conf = array();
+   $_db_prefix = $db_prefix;
+-  @include './' . conf_path() . '/settings.php';
++  @include DRUPAL_ROOT . '/' . conf_path() . '/settings.php';
+   $conf = variable_initialize($conf);
+   $object->digest_md5 = variable_get('securesite_digest_script', drupal_get_path('module', 'securesite') . '/digest_md5/digest_md5.php');
+   $object->stored_passwords = variable_get('securesite_password_script', drupal_get_path('module', 'securesite') . '/digest_md5/stored_passwords.php');
+   $conf = array();
+-  @include './' . conf_path() . '/settings.php';
++  @include DRUPAL_ROOT . '/' . conf_path() . '/settings.php';
+   $db_prefix = $_db_prefix;
+   $conf = variable_initialize($conf);
+   variable_set('securesite_digest_script', $object->digest_md5);
+diff --git a/securesite.variable.inc b/securesite.variable.inc
+index f7bf804..a944b90 100644
+--- a/securesite.variable.inc
++++ b/securesite.variable.inc
+@@ -1,4 +1,5 @@
+ <?php
++
+ /**
+  * @file
+  * Variable module integration.
+@@ -35,9 +36,9 @@ function securesite_variable_info() {
+     'required' => TRUE,
+   );
+   $variable['securesite_type']['description'] = "\n<p>" .
+-    t('HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the !link section of the Secure Site help for details.', array('!link' => l(t('Known issues'), 'admin/help/securesite', array('fragment' => 'issues')))) . "</p>\n<p>" .
++    t('HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="@securesite-issues">Known issues</a> section of the Secure Site help for details.', array('@securesite-issues' => url('admin/help/securesite', array('fragment' => 'issues')))) . "</p>\n<p>" .
+     t('Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server.') . ' ' .
+-    t('For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the !link section of the Secure Site help for details.', array('!link' => l(t('Secure password storage'), 'admin/help/securesite', array('fragment' => 'passwords')))) . "</p>\n<p>" .
++    t('For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="@securesite-passwords">Secure password storage</a> section of the Secure Site help for details.', array('@securesite-passwords' => url('admin/help/securesite', array('fragment' => 'passwords')))) . "</p>\n<p>" .
+     t('When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, <strong>you may lock yourself out of your own site.</strong>') . '</p>' . "\n";
+ 
+   $variable['securesite_digest_script'] = array(
+diff --git a/theme/securesite-page.tpl.php b/theme/securesite-page.tpl.php
+index eb147ff..8e7ce45 100644
+--- a/theme/securesite-page.tpl.php
++++ b/theme/securesite-page.tpl.php
+@@ -24,4 +24,4 @@
+   <?php print $messages ?>
+   <?php print $content ?>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/theme/securesite-user-pass.tpl.php b/theme/securesite-user-pass.tpl.php
+index 9c605d3..2a5e0ce 100644
+--- a/theme/securesite-user-pass.tpl.php
++++ b/theme/securesite-user-pass.tpl.php
+@@ -11,4 +11,4 @@
+ <p><?php print $title ?></p>
+ <?php print drupal_render($form['name']); ?>
+ <?php print drupal_render($form['submit']); ?>
+-<?php print drupal_render_children($form) ?>
++<?php print drupal_render_children($form)
+diff --git a/theme/securesite.css b/theme/securesite.css
+index 7d3ca74..5367b56 100644
+--- a/theme/securesite.css
++++ b/theme/securesite.css
+@@ -1,4 +1,3 @@
+-
+ html {
+   background: white;
+ }
+diff --git a/theme/securesite.theme.inc b/theme/securesite.theme.inc
+index 3bbfed2..bd27406 100644
+--- a/theme/securesite.theme.inc
++++ b/theme/securesite.theme.inc
+@@ -35,11 +35,11 @@ function template_preprocess_securesite_user_pass(&$variables) {
+  */
+ function template_preprocess_securesite_page(&$variables) {
+   // Add relevant default variables, taken from template_preprocess_page()
+-  $variables['messages']   = !empty($variables['show_messages']) ? theme('status_messages') : '';
+-  $variables['base_path']  = base_path();
+-  $variables['logo']       = theme_get_setting('logo');
++  $variables['messages'] = !empty($variables['show_messages']) ? theme('status_messages') : '';
++  $variables['base_path'] = base_path();
++  $variables['logo'] = theme_get_setting('logo');
+   $variables['front_page'] = url();
+-  
++
+   // Check if logo exists before output it in a template file
+   // First get relative path from logo theme setting
+   $logo_parts = parse_url($variables['logo']);
+@@ -51,11 +51,11 @@ function template_preprocess_securesite_page(&$variables) {
+   if (!file_exists($logo_path)) {
+     $variables['logo'] = NULL;
+   }
+-  
++
+   // Clear out existing CSS
+   $css = &drupal_static('drupal_add_css', array());
+   $css = array();
+-  
++
+   // Add our css file back, so it will be the only one
+   drupal_add_css(drupal_get_path('module', 'securesite') . '/theme/securesite.css');
+ 
+@@ -63,10 +63,10 @@ function template_preprocess_securesite_page(&$variables) {
+   // By default we should not need any JS.
+   $js = &drupal_static('drupal_add_js', array());
+   $js = array();
+-  
++
+   // Required by Core template_process_html()
+   $variables['page']['#children'] = NULL;
+-  
++
+   // Call Drupal core default html page preprocess function
+   template_preprocess_html($variables);
+ }
+-- 
+2.7.4 (Apple Git-66)
+
+
+From 23fe618848cb13547caaf2457a5f58352e71ae3c Mon Sep 17 00:00:00 2001
+From: Darren Oh <darren@oh.name>
+Date: Sun, 19 Jun 2016 13:04:48 -0400
+Subject: [PATCH 2/6] Fixed coding standards violations.
+
+---
+ securesite.admin.inc | 228 +++++++++++++++++++++++++--------------------------
+ 1 file changed, 114 insertions(+), 114 deletions(-)
+
+diff --git a/securesite.admin.inc b/securesite.admin.inc
+index e770805..ba5b536 100644
+--- a/securesite.admin.inc
++++ b/securesite.admin.inc
+@@ -9,120 +9,120 @@
+  * Module help page.
+  */
+ function _securesite_admin_help() {
+-  return t('<p>Secure Site allows site administrators to make a site or part of a site private. You can restrict access to the site by role. This means the site will be inaccessible to search engines and other crawlers, but you can still allow access to certain people.</p>' . "\n" .
+-  '<p>You can also secure remote access to RSS feeds. You can keep content private and protected, but still allow users to get notification of new content and other actions via RSS with news readers that support <em>user:pass@example.com/node/feed</em> URLs, or have direct support for user name and password settings. This is especially useful when paired with the Organic Groups module or other node access systems.</p>' . "\n" .
+-  '<h3>Configuration</h3>' . "\n" .
+-  '<ul>' . "\n" .
+-  '  <li>Force authentication' . "\n" .
+-  '    <p>This setting controls whether users will be forced to authenticate before viewing pages. By default, authentication is never forced.</p>' . "\n" .
+-  '    <ol>' . "\n" .
+-  '      <li>Never' . "\n" .
+-  '        <p>This setting will prevent Secure Site from hiding pages.</p>' . "\n" .
+-  '      </li>' . "\n" .
+-  '      <li>Always' . "\n" .
+-  '        <p>This setting will hide your entire site from unauthenticated users.' . "\n" .
+-  '      </li>' . "\n" .
+-  '      <li>During maintenance' . "\n" .
+-  '        <p>This setting will hide your site during maintenance.' . "\n" .
+-  '      </li>' . "\n" .
+-  '      <li>On restricted pages' . "\n" .
+-  '        <p>This setting will hide only pages that anonymous users cannot access.' . "\n" .
+-  '      </li>' . "\n" .
+-  '    </ol>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Authentication type' . "\n" .
+-  '    <p>Three methods of authentication are available. Please note that HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="#issues">Known issues</a> section for details.' . "\n" .
+-  '    <ol>' . "\n" .
+-  '      <li>HTTP digest' . "\n" .
+-  '        <p>This will enable HTTP digest authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page.' . '</p>' . "\n" .
+-  '        <p>Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server. For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="#passwords">Secure password storage</a> section for details.</p>' . "\n" .
+-  '        <p>When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, you may lock yourself out of your own site.</p>' . "\n" .
+-  '      </li>' . "\n" .
+-  '      <li>HTTP basic' . "\n" .
+-  '        <p>This will enable HTTP basic authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page. Basic authentication is not secure unless you are using SSL to encrypt the connection.</p>' . "\n" .
+-  '      </li>' . "\n" .
+-  '      <li>HTML log-in form' . "\n" .
+-  '        <p>This method uses a themeable HTML log-in form for user name and password input. This method is the most reliable as it does not rely on the browser for authentication. Like HTTP basic, it is insecure unless you are using SSL to encrypt the connection.</p>' . "\n" .
+-  '      </li>' . "\n" .
+-  '    </ol>' . "\n" .
+-  '    <p>HTTP authentication is recommended for secure feeds, because feed readers are not likely to be able to handle forms. You can enable all three types of authentication at the same time.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Digest authentication script' . "\n" .
+-  '    <p>For security, HTTP digest authentication uses an external script to check passwords. Enter the digest authentication script exactly as it would appear on the command line.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Password storage script' . "\n" .
+-  '    <p>For security, HTTP digest authentication uses an external script to save passwords. Enter the password storage script exactly as it would appear on the command line.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Authentication realm' . "\n" .
+-  '    <p>You can use this field to name your log-in area. This is primarily used with HTTP Auth.' . '</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Guest user name and password' . "\n" .
+-  '    <p>If you give anonymous users the <em><a href="!access">access secured pages</a></em> permission, you can set a user name and password for anonymous users. If not set, guests can use any name and password.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Customize HTML forms' . "\n" .
+-  '    <p><em>Custom message for log-in form</em> and <em>Custom message for password reset form</em> are used in the HTML forms when they are displayed. If the latter box is empty, Secure Site will not offer to reset passwords. Please note, the log-in form is only displayed when the HTML log-in form authentication mode is used.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '</ul>' . "\n" .
+-  '<h3 id="passwords">Secure password storage</h3>' . "\n" .
+-  '<p>Digest authentication avoids transmitting passwords by exchanging character strings (digests) that prove both the user and the Web server know the password. This requires passwords for all users to be stored on the server. It is very important to ensure that these passwords cannot be exposed to unauthorized users. Drupal should be able to store passwords without being able to retrieve them.</p>' . "\n" .
+-  '<p>Secure Site provides scripts that can handle stored passwords securely when properly set up. These scripts are contained in the <em>digest_md5</em> directory. There are two scripts in this directory:</p>' . "\n" .
+-  '<dl>' . "\n" .
+-  '  <dt>stored_passwords.php</dt><dd>Add, delete, and update user passwords.</dd>' . "\n" .
+-  '  <dt>digest_md5.php</dt><dd>Perform digest authentication.</dd>' . "\n" .
+-  '</dl>' . "\n" .
+-  '<p>You can get help for these scripts by typing the script name followed by <em>--help</em> on the command line. You must be able to run PHP from the command line. Some configuration is required to make the scripts work properly:</p>' . "\n" .
+-  '<ol>' . "\n" .
+-  '  <li>Set up a secure database' . "\n" .
+-  '    <p>You can set up a password database in the same way you create a Drupal database. Your password database should have its own user. No other database users should have access to the password database.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Edit the configuration file' . "\n" .
+-  '    <p>Configuration settings for the scripts are in the <em>digest_md5.conf.php</em> file in the <em>digest_md5</em> directory. You must set <em>$db_url</em> to point to your password database. If you want to be able to use the scripts from the command-line, you must set <em>$drupal</em> to the absolute path of your Drupal installation. When you are done editing the configuration file, make it read-only.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Control access to the scripts' . "\n" .
+-  '    <p>The first thing you can do to secure the scripts is to move the <em>digest_md5</em> directory to a location that is not accessible from the Internet. The configuration file especially needs protection, because it contains information that allows access to the password database. On the Secure Site settings page, change the digest authentication script and password storage script to point to the new location. For example, if you moved the <em>digest_md5</em> directory to <em>/usr/local</em>, you would use</p>' . "\n" .
+-  '    <pre>/usr/local/digest_md5/digest_md5.php' . "\n" .
+-           '/usr/local/digest_md5/stored_passwords.php</pre>' . "\n" .
+-  '    <p>If the <em>sudo</em> command is available on your system, you can change the file system permissions on the all the files in the <em>digest_md5</em> directory so that only adminstrators have access to them. You would then add the user your Web server runs as to the <em>sudoers</em> file. A sample <em>sudoers</em> file is provided in the <em>digest_md5</em> directory for comparison. The important lines are</p>' . "\n" .
+-  '    <pre>Defaults:apache	!authenticate' . "\n" .
+-           'Defaults:apache	!lecture' . "\n" .
+-           'apache	ALL=/usr/local/digest_md5/stored_passwords.php [A-z]*' . "\n" .
+-           'apache	ALL=/usr/local/digest_md5/digest_md5.php [A-z]*</pre>' . "\n" .
+-  '    <p>This allows <em>apache</em> to use <em>sudo</em> only to run <em>stored_passwords.php</em> and <em>digest_md5.php</em>. Replace <em>apache</em> with the name of the Web server user on your system, and replace <em>/usr/local</em> with the directory in which you placed the <em>digest_md5</em> directory. On the Secure Site settings page, add <em>sudo</em> at the beginning of the line for the digest authentication script and the password storage script:</p>' . "\n" .
+-  '    <pre>sudo /usr/local/digest_md5/digest_md5.php' . "\n" .
+-           'sudo /usr/local/digest_md5/stored_passwords.php</pre>' . "\n" .
+-  '    <p>If the rest of your system is secure, Drupal can now store passwords without having the ability to retrieve them.</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '</ol>' . "\n" .
+-  '<h3>Theming</h3>' . "\n" .
+-  '<p>Secure Site&rsquo;s HTML output is controlled by three files:</p>' . "\n" .
+-  '<dl>' . "\n" .
+-  '  <dt>securesite-page.tpl.php<dt><dd>Template for Secure Site pages. Works in the same way as page.tpl.php.</dd>' . "\n" .
+-  '  <dt>securesite-user-login.tpl.php<dt><dd>Template for the user log-in form.</dd>' . "\n" .
+-  '  <dt>securesite-user-pass.tpl.php<dt><dd>Template for the password reset form.</dd>' . "\n" .
+-  '</dl>' . "\n" .
+-  '<p>You can theme Secure Site&rsquo;s HTML output by copying these files to your theme&rsquo;s directory. The files in your theme&rsquo;s directory will become the templates for all Secure Site HTML output.</p>' . "\n" .
+-  '<h3>Configuring cron jobs</h3>' . "\n" .
+-  '<p>If HTTP authentication is forced, cron jobs will need to authenticate themselves. See <a href="https://drupal.org/cron">Configuring cron jobs</a> for more details on configuring cron jobs. These examples show how to add a user name and password (note: Lynx does not support digest authentication):</p>' . "\n" .
+-  '<pre>45 * * * * /usr/bin/lynx -auth=<em>username</em>:<em>password</em> -source http://example.com/cron.php' . "\n" .
+-       '45 * * * * /usr/bin/wget --user=<em>username</em> --password=<em>password</em> -O - -q http://example.com/cron.php' . "\n" .
+-       '45 * * * * /usr/bin/curl --anyauth --user <em>username</em>:<em>password</em> --silent --compressed http://example.com/cron.php</pre>' . "\n" .
+-  '<h3 id="issues">Known issues</h3>' . "\n" .
+-  '<ul>' . "\n" .
+-  '  <li>Authentication on PHP/CGI installations' . "\n" .
+-  '    <p>If you are using HTTP authentication and are unable to log in, PHP could be running in CGI mode. When run in CGI mode, the normal HTTP authentication variables are not available to PHP. To work around this issue, add the following rewrite rule at the end of the .htaccess file in Drupal&rsquo;s installation directory:</p>' . "\n" .
+-  '    <pre>RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>' . "\n" .
+-  '    <p>After making the suggested change in Drupal 6, the rewrite rules would look like this:' . '</p>' . "\n" .
+-  '    <pre># Rewrite URLs of the form \'x\' to the form \'index.php?q=x\'.' . "\n" .
+-           'RewriteCond %{REQUEST_FILENAME} !-f' . "\n" .
+-           'RewriteCond %{REQUEST_FILENAME} !-d' . "\n" .
+-           'RewriteCond %{REQUEST_URI} !=/favicon.ico' . "\n" .
+-           'RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]' . "\n" .
+-           'RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>' . "\n" .
+-  '  </li>' . "\n" .
+-  '  <li>Authentication when running Drupal via IIS' . "\n" .
+-  '    <p>If you are using HTTP authentication and are unable to log in when Drupal is running on an IIS server, make sure that the PHP directive <em>cgi.rfc2616_headers</em> is set to <em>0</em> (the default value).</p>' . "\n" .
+-  '  </li>' . "\n" .
+-  '</ul>' . "\n", array(
++  return t('<p>Secure Site allows site administrators to make a site or part of a site private. You can restrict access to the site by role. This means the site will be inaccessible to search engines and other crawlers, but you can still allow access to certain people.</p>
++<p>You can also secure remote access to RSS feeds. You can keep content private and protected, but still allow users to get notification of new content and other actions via RSS with news readers that support <em>user:pass@example.com/node/feed</em> URLs, or have direct support for user name and password settings. This is especially useful when paired with the Organic Groups module or other node access systems.</p>
++<h3>Configuration</h3>
++<ul>
++  <li>Force authentication
++    <p>This setting controls whether users will be forced to authenticate before viewing pages. By default, authentication is never forced.</p>
++    <ol>
++      <li>Never
++        <p>This setting will prevent Secure Site from hiding pages.</p>
++      </li>
++      <li>Always
++        <p>This setting will hide your entire site from unauthenticated users.
++      </li>
++      <li>During maintenance
++        <p>This setting will hide your site during maintenance.
++      </li>
++      <li>On restricted pages
++        <p>This setting will hide only pages that anonymous users cannot access.
++      </li>
++    </ol>
++  </li>
++  <li>Authentication type
++    <p>Three methods of authentication are available. Please note that HTTP authentication requires extra configuration if PHP is not installed as an Apache module. See the <a href="#issues">Known issues</a> section for details.
++    <ol>
++      <li>HTTP digest
++        <p>This will enable HTTP digest authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page.' . '</p>
++        <p>Digest authentication protects a user&rsquo;s password from eavesdroppers when you are not using SSL to encrypt the connection. However, it can only be used when a copy of the password is stored on the server. For security reasons, Drupal does not store passwords. You will need to configure scripts to securely save passwords and authenticate users. See the <a href="#passwords">Secure password storage</a> section for details.</p>
++        <p>When digest authentication is enabled, passwords will be saved when users log in or set their passwords. If you use digest authentication to protect your whole site, you should allow guest access or allow another authentication type until users whose passwords are not yet saved have logged in. Otherwise, you may lock yourself out of your own site.</p>
++      </li>
++      <li>HTTP basic
++        <p>This will enable HTTP basic authentication. The user&rsquo;s browser will prompt for the user&rsquo;s name and password before displaying the page. Basic authentication is not secure unless you are using SSL to encrypt the connection.</p>
++      </li>
++      <li>HTML log-in form
++        <p>This method uses a themeable HTML log-in form for user name and password input. This method is the most reliable as it does not rely on the browser for authentication. Like HTTP basic, it is insecure unless you are using SSL to encrypt the connection.</p>
++      </li>
++    </ol>
++    <p>HTTP authentication is recommended for secure feeds, because feed readers are not likely to be able to handle forms. You can enable all three types of authentication at the same time.</p>
++  </li>
++  <li>Digest authentication script
++    <p>For security, HTTP digest authentication uses an external script to check passwords. Enter the digest authentication script exactly as it would appear on the command line.</p>
++  </li>
++  <li>Password storage script
++    <p>For security, HTTP digest authentication uses an external script to save passwords. Enter the password storage script exactly as it would appear on the command line.</p>
++  </li>
++  <li>Authentication realm
++    <p>You can use this field to name your log-in area. This is primarily used with HTTP Auth.' . '</p>
++  </li>
++  <li>Guest user name and password
++    <p>If you give anonymous users the <em><a href="!access">access secured pages</a></em> permission, you can set a user name and password for anonymous users. If not set, guests can use any name and password.</p>
++  </li>
++  <li>Customize HTML forms
++    <p><em>Custom message for log-in form</em> and <em>Custom message for password reset form</em> are used in the HTML forms when they are displayed. If the latter box is empty, Secure Site will not offer to reset passwords. Please note, the log-in form is only displayed when the HTML log-in form authentication mode is used.</p>
++  </li>
++</ul>
++<h3 id="passwords">Secure password storage</h3>
++<p>Digest authentication avoids transmitting passwords by exchanging character strings (digests) that prove both the user and the Web server know the password. This requires passwords for all users to be stored on the server. It is very important to ensure that these passwords cannot be exposed to unauthorized users. Drupal should be able to store passwords without being able to retrieve them.</p>
++<p>Secure Site provides scripts that can handle stored passwords securely when properly set up. These scripts are contained in the <em>digest_md5</em> directory. There are two scripts in this directory:</p>
++<dl>
++  <dt>stored_passwords.php</dt><dd>Add, delete, and update user passwords.</dd>
++  <dt>digest_md5.php</dt><dd>Perform digest authentication.</dd>
++</dl>
++<p>You can get help for these scripts by typing the script name followed by <em>--help</em> on the command line. You must be able to run PHP from the command line. Some configuration is required to make the scripts work properly:</p>
++<ol>
++  <li>Set up a secure database
++    <p>You can set up a password database in the same way you create a Drupal database. Your password database should have its own user. No other database users should have access to the password database.</p>
++  </li>
++  <li>Edit the configuration file
++    <p>Configuration settings for the scripts are in the <em>digest_md5.conf.php</em> file in the <em>digest_md5</em> directory. You must set <em>$db_url</em> to point to your password database. If you want to be able to use the scripts from the command-line, you must set <em>$drupal</em> to the absolute path of your Drupal installation. When you are done editing the configuration file, make it read-only.</p>
++  </li>
++  <li>Control access to the scripts
++    <p>The first thing you can do to secure the scripts is to move the <em>digest_md5</em> directory to a location that is not accessible from the Internet. The configuration file especially needs protection, because it contains information that allows access to the password database. On the Secure Site settings page, change the digest authentication script and password storage script to point to the new location. For example, if you moved the <em>digest_md5</em> directory to <em>/usr/local</em>, you would use</p>
++    <pre>/usr/local/digest_md5/digest_md5.php
++/usr/local/digest_md5/stored_passwords.php</pre>
++    <p>If the <em>sudo</em> command is available on your system, you can change the file system permissions on the all the files in the <em>digest_md5</em> directory so that only adminstrators have access to them. You would then add the user your Web server runs as to the <em>sudoers</em> file. A sample <em>sudoers</em> file is provided in the <em>digest_md5</em> directory for comparison. The important lines are</p>
++    <pre>Defaults:apache	!authenticate
++Defaults:apache	!lecture
++apache	ALL=/usr/local/digest_md5/stored_passwords.php [A-z]*
++apache	ALL=/usr/local/digest_md5/digest_md5.php [A-z]*</pre>
++    <p>This allows <em>apache</em> to use <em>sudo</em> only to run <em>stored_passwords.php</em> and <em>digest_md5.php</em>. Replace <em>apache</em> with the name of the Web server user on your system, and replace <em>/usr/local</em> with the directory in which you placed the <em>digest_md5</em> directory. On the Secure Site settings page, add <em>sudo</em> at the beginning of the line for the digest authentication script and the password storage script:</p>
++    <pre>sudo /usr/local/digest_md5/digest_md5.php
++sudo /usr/local/digest_md5/stored_passwords.php</pre>
++    <p>If the rest of your system is secure, Drupal can now store passwords without having the ability to retrieve them.</p>
++  </li>
++</ol>
++<h3>Theming</h3>
++<p>Secure Site&rsquo;s HTML output is controlled by three files:</p>
++<dl>
++  <dt>securesite-page.tpl.php<dt><dd>Template for Secure Site pages. Works in the same way as page.tpl.php.</dd>
++  <dt>securesite-user-login.tpl.php<dt><dd>Template for the user log-in form.</dd>
++  <dt>securesite-user-pass.tpl.php<dt><dd>Template for the password reset form.</dd>
++</dl>
++<p>You can theme Secure Site&rsquo;s HTML output by copying these files to your theme&rsquo;s directory. The files in your theme&rsquo;s directory will become the templates for all Secure Site HTML output.</p>
++<h3>Configuring cron jobs</h3>
++<p>If HTTP authentication is forced, cron jobs will need to authenticate themselves. See <a href="https://drupal.org/cron">Configuring cron jobs</a> for more details on configuring cron jobs. These examples show how to add a user name and password (note: Lynx does not support digest authentication):</p>
++<pre>45 * * * * /usr/bin/lynx -auth=<em>username</em>:<em>password</em> -source http://example.com/cron.php
++45 * * * * /usr/bin/wget --user=<em>username</em> --password=<em>password</em> -O - -q http://example.com/cron.php
++45 * * * * /usr/bin/curl --anyauth --user <em>username</em>:<em>password</em> --silent --compressed http://example.com/cron.php</pre>
++<h3 id="issues">Known issues</h3>
++<ul>
++  <li>Authentication on PHP/CGI installations
++    <p>If you are using HTTP authentication and are unable to log in, PHP could be running in CGI mode. When run in CGI mode, the normal HTTP authentication variables are not available to PHP. To work around this issue, add the following rewrite rule at the end of the .htaccess file in Drupal&rsquo;s installation directory:</p>
++    <pre>RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>
++    <p>After making the suggested change in Drupal 6, the rewrite rules would look like this:' . '</p>
++    <pre># Rewrite URLs of the form \'x\' to the form \'index.php?q=x\'.
++RewriteCond %{REQUEST_FILENAME} !-f
++RewriteCond %{REQUEST_FILENAME} !-d
++RewriteCond %{REQUEST_URI} !=/favicon.ico
++RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
++RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]</pre>
++  </li>
++  <li>Authentication when running Drupal via IIS
++    <p>If you are using HTTP authentication and are unable to log in when Drupal is running on an IIS server, make sure that the PHP directive <em>cgi.rfc2616_headers</em> is set to <em>0</em> (the default value).</p>
++  </li>
++</ul>', array(
+     '!access' => url('admin/people/permissions', array('fragment' => 'module-securesite')),
+   ));
+ }
+-- 
+2.7.4 (Apple Git-66)
+
+
+From 54f52f2a490d39c055a47ebfb5d40e3c9ea556db Mon Sep 17 00:00:00 2001
+From: Knob <Knob@1885838.no-reply.drupal.org>
+Date: Sun, 19 Jun 2016 13:12:13 -0400
+Subject: [PATCH 3/6] Issue #2505097 by Upchuk: Fixed missing key for
+ drupal_add_html_head().
+
+---
+ securesite.inc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/securesite.inc b/securesite.inc
+index 18bc786..fc77ad5 100644
+--- a/securesite.inc
++++ b/securesite.inc
+@@ -493,7 +493,7 @@ function securesite_user_login_form($form, &$form_state) {
+              '  background:transparent url(' . $base_path . drupal_get_path('module', 'openid') . '/login-bg.png) no-repeat scroll 1px 0.35em;' . "\n" .
+              '}' . "\n" .
+              '</style>';
+-    drupal_add_html_head($style);
++    drupal_add_html_head($style, 'securesite_open_id');
+   }
+ 
+   // drupal_alter takes this variable by reference so can't be a literal.
+-- 
+2.7.4 (Apple Git-66)
+
+
+From c73b86cce9168d4a2bcac610fd4c5bca8cd2349c Mon Sep 17 00:00:00 2001
+From: Darren Oh <darren@oh.name>
+Date: Thu, 23 Jun 2016 13:52:31 -0400
+Subject: [PATCH 4/6] Fixed more coding standards violations.
+
+---
+ theme/securesite-page.tpl.php       | 4 ++--
+ theme/securesite-user-login.tpl.php | 6 +++---
+ theme/securesite-user-pass.tpl.php  | 6 +++---
+ 3 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/theme/securesite-page.tpl.php b/theme/securesite-page.tpl.php
+index 8e7ce45..6080440 100644
+--- a/theme/securesite-page.tpl.php
++++ b/theme/securesite-page.tpl.php
+@@ -21,7 +21,7 @@
+     <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" />
+   </a>
+   <?php endif; ?>
+-  <?php print $messages ?>
+-  <?php print $content ?>
++  <?php print $messages; ?>
++  <?php print $content; ?>
+ </body>
+ </html>
+diff --git a/theme/securesite-user-login.tpl.php b/theme/securesite-user-login.tpl.php
+index 8f63fbb..f5e3b32 100644
+--- a/theme/securesite-user-login.tpl.php
++++ b/theme/securesite-user-login.tpl.php
+@@ -7,9 +7,9 @@
+  * @see template_preprocess_securesite_user_login()
+  */
+ ?>
+-<h1><?php print t('Log in') ?></h1>
+-<?php print $messages ?>
+-<p><?php print $title ?></p>
++<h1><?php print t('Log in'); ?></h1>
++<?php print $messages; ?>
++<p><?php print $title; ?></p>
+ <?php print drupal_render($form['openid_identifier']); ?>
+ <?php print drupal_render($form['name']); ?>
+ <?php print drupal_render($form['pass']); ?>
+diff --git a/theme/securesite-user-pass.tpl.php b/theme/securesite-user-pass.tpl.php
+index 2a5e0ce..b172a94 100644
+--- a/theme/securesite-user-pass.tpl.php
++++ b/theme/securesite-user-pass.tpl.php
+@@ -7,8 +7,8 @@
+  * @see template_preprocess_securesite_user_pass()
+  */
+ ?>
+-<h1><?php print t('Password reset') ?></h1>
+-<p><?php print $title ?></p>
++<h1><?php print t('Password reset'); ?></h1>
++<p><?php print $title; ?></p>
+ <?php print drupal_render($form['name']); ?>
+ <?php print drupal_render($form['submit']); ?>
+-<?php print drupal_render_children($form)
++<?php print drupal_render_children($form); ?>
+-- 
+2.7.4 (Apple Git-66)
+
+
+From 14fdbfadadb9423696acd4d279df218b5c3beb4a Mon Sep 17 00:00:00 2001
+From: wub <wub@3204539.no-reply.drupal.org>
+Date: Thu, 23 Jun 2016 13:57:55 -0400
+Subject: [PATCH 5/6] Issue #2497271 by wub, Darren Oh: Fixed logout errors.
+
+---
+ securesite.inc    | 21 +++++++++++++++------
+ securesite.module | 51 ++++++++++++++++++++++++++++++---------------------
+ 2 files changed, 45 insertions(+), 27 deletions(-)
+
+diff --git a/securesite.inc b/securesite.inc
+index fc77ad5..e873859 100644
+--- a/securesite.inc
++++ b/securesite.inc
+@@ -56,7 +56,11 @@ function _securesite_parse_directives($field_value) {
+  */
+ function _securesite_403() {
+   global $user;
+-  if (empty($user->uid) && !isset($_SESSION['securesite_guest']) && $_GET['q'] != 'user/logout') {
++  if (in_array('user/logout', drupal_get_destination())) {
++    module_load_include('pages.inc', 'user');
++    user_logout();
++  }
++  if (empty($user->uid) && !isset($_SESSION['securesite_guest'])) {
+     _securesite_dialog(securesite_type_get());
+   }
+   else {
+@@ -343,7 +347,7 @@ function _securesite_forced() {
+  *   The type of authentication dialog to display.
+  */
+ function _securesite_dialog($type) {
+-  global $base_path, $language;
++  global $user, $base_path, $language;
+   // Has the password reset form been submitted?
+   if (isset($_POST['form_id']) && $_POST['form_id'] == 'securesite_user_pass') {
+     // Get form messages, but do not display form.
+@@ -384,7 +388,9 @@ function _securesite_dialog($type) {
+           $header = _securesite_digest_validate($status, array('realm' => $realm, 'fakerealm' => _securesite_fake_realm()));
+         }
+         if (strpos($header, 'WWW-Authenticate') === 0) {
+-          drupal_add_http_header('Status', '401 Unauthorized');
++          if (!empty($user->uid) || drupal_get_destination() != 'user/logout') {
++            drupal_add_http_header('Status', '401 Unauthorized');
++          }
+         }
+         else {
+           drupal_add_http_header($header['name'], $header['value']);
+@@ -393,7 +399,9 @@ function _securesite_dialog($type) {
+ 
+       case SECURESITE_BASIC:
+         drupal_add_http_header('WWW-Authenticate', 'Basic realm="' . _securesite_fake_realm() . '"');
+-        drupal_add_http_header('Status', '401 Unauthorized');
++        if (!empty($user->uid) || !in_array('user/logout', drupal_get_destination())) {
++          drupal_add_http_header('Status', '401 Unauthorized');
++        }
+         break;
+ 
+       case SECURESITE_FORM:
+@@ -402,17 +410,18 @@ function _securesite_dialog($type) {
+     }
+     // Form authentication doesn't work for cron, so allow cron.php to run
+     // without authenticating when no other authentication type is enabled.
+-    if (request_uri() != $base_path . 'cron.php' || variable_get('securesite_type', array(SECURESITE_BASIC)) != array(SECURESITE_FORM)) {
++    if (current_path() != 'user/logout' && (request_uri() != $base_path . 'cron.php' || variable_get('securesite_type', array(SECURESITE_BASIC)) != array(SECURESITE_FORM))) {
+       drupal_set_title(t('Authentication required'));
+       $content = _securesite_dialog_page();
+     }
+   }
+-  if (isset($content)) {
++  if (isset($content) && !in_array('user/logout', drupal_get_destination())) {
+     // Theme and display output
+     print theme('securesite_page', array('content' => $content));
+ 
+     // Exit page
+     module_invoke_all('exit');
++    ob_flush();
+     exit();
+   }
+ }
+diff --git a/securesite.module b/securesite.module
+index 8f6f8d7..1a8fe11 100644
+--- a/securesite.module
++++ b/securesite.module
+@@ -119,24 +119,28 @@ function securesite_form_system_site_information_settings_alter(&$form, $form_st
+  */
+ function securesite_boot() {
+   global $user;
+-  // Did the user send credentials that we accept?
+-  $type = _securesite_mechanism();
+-  if ($type !== FALSE && (isset($_SESSION['securesite_repeat']) ? !$_SESSION['securesite_repeat'] : TRUE)) {
+-    drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+-    module_load_include('inc', 'securesite');
+-    _securesite_boot($type);
+-  }
+-  // If credentials are missing and user is not logged in, request new credentials.
+-  elseif (empty($user->uid) && !isset($_SESSION['securesite_guest'])) {
+-    if (isset($_SESSION['securesite_repeat'])) {
+-      unset($_SESSION['securesite_repeat']);
++  if ($_GET['q'] != 'user/logout') {
++    // Did the user send credentials that we accept? (This should be a hook.)
++    $type = _securesite_mechanism();
++    if ($type !== FALSE && (isset($_SESSION['securesite_repeat']) ? !$_SESSION['securesite_repeat'] : TRUE)) {
++      // Doing a full boot before login causes access denied errors because
++      // menu access has already been set.
++      drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL, FALSE);
++      module_load_include('inc', 'securesite');
++      _securesite_boot($type);
+     }
+-    $types = variable_get('securesite_type', array(SECURESITE_BASIC));
+-    sort($types, SORT_NUMERIC);
+-    drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+-    module_load_include('inc', 'securesite');
+-    if (_securesite_forced()) {
+-      _securesite_dialog(array_pop($types));
++    // If credentials are missing and user is not logged in, request new credentials.
++    elseif (empty($user->uid) && !isset($_SESSION['securesite_guest'])) {
++      if (isset($_SESSION['securesite_repeat'])) {
++        unset($_SESSION['securesite_repeat']);
++      }
++      $types = variable_get('securesite_type', array(SECURESITE_BASIC));
++      sort($types, SORT_NUMERIC);
++      drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL, FALSE);
++      module_load_include('inc', 'securesite');
++      if (_securesite_forced()) {
++        _securesite_dialog(array_pop($types));
++      }
+     }
+   }
+ }
+@@ -289,22 +293,27 @@ function securesite_user_delete($account) {
+  * credentials are cleared
+  */
+ function securesite_user_logout($account) {
++  global $user;
+   $types = variable_get('securesite_type', array(SECURESITE_BASIC));
+   if ((in_array(SECURESITE_BASIC, $types) || in_array(SECURESITE_DIGEST, $types)) && !empty($_SESSION['securesite_login'])) {
+     module_load_include('inc', 'securesite');
+-    // Load the anonymous user.
+-    $user = drupal_anonymous_user();
+     // Safari will attempt to use old credentials before requesting new credentials
+     // from the user. Logging out requires that the WWW-Authenticate header be sent
+     // twice.
+     $user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? drupal_strtolower($_SERVER['HTTP_USER_AGENT']) : '');
+     if ($user_agent != str_replace('safari', '', $user_agent)) {
+-      session_set_save_handler('sess_open', 'sess_close', 'sess_read', 'sess_write', 'sess_destroy_sid', 'sess_gc');
+-      session_start();
+       $_SESSION['securesite_repeat'] = TRUE;
+     }
+     // Clear stored credentials.
+     _securesite_dialog(array_pop($types));
++    if (!empty($user->uid)) {
++      session_destroy();
++      $_SESSION['securesite_login'] = TRUE;
++      // Exit page
++      ob_flush();
++      drupal_exit();
++    }
++    unset($_GET['destination']);
+   }
+ }
+ 
+-- 
+2.7.4 (Apple Git-66)
+
+
+From a642077205c5cfe25c4c1b2534fc4144965328d7 Mon Sep 17 00:00:00 2001
+From: Darren Oh <darren@oh.name>
+Date: Thu, 23 Jun 2016 14:06:16 -0400
+Subject: [PATCH 6/6] Issue #2484755 by Darren Oh: Fixed redirect loop.
+
+---
+ securesite.inc | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/securesite.inc b/securesite.inc
+index e873859..4682144 100644
+--- a/securesite.inc
++++ b/securesite.inc
+@@ -218,6 +218,11 @@ function _securesite_user_login($edit, $account) {
+     global $user;
+     $user = $account;
+     user_login_finalize($edit);
++    // Reset menu to prevent access denied error.
++    $router_items = &drupal_static('menu_get_item');
++    unset($router_items[current_path()], $GLOBALS['theme']);
++    menu_set_custom_theme();
++    drupal_theme_initialize();
+ 
+     // Mark the session so Secure Site will be triggered on log-out.
+     $_SESSION['securesite_login'] = TRUE;
+@@ -228,14 +233,6 @@ function _securesite_user_login($edit, $account) {
+     unset($_SESSION['messages']);
+     // Clear the guest session.
+     unset($_SESSION['securesite_guest']);
+-
+-    // Always redirect to prevent access denied errors
+-    $path = $_GET['q'];
+-    // Prevent a log-in/log-out loop by redirecting off the log-out page.
+-    if ($_GET['q'] == 'user/logout') {
+-      $path = '';
+-    }
+-    drupal_goto($path);
+   }
+   else {
+     _securesite_denied(t('You have not been authorized to log in to secured pages.'));
+-- 
+2.7.4 (Apple Git-66)
+

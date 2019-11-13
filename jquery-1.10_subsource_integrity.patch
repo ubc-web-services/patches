@@ -7,7 +7,7 @@ index 9d143be..6f50e69 100644
  function jquery_update_jquery_backup(&$javascript, $path, $min, $version) {
    $javascript['jquery']['js'][] = array(
 -    'data' => 'window.jQuery || document.write("<script src=\'' . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\'>\x3C/script>")',
-+    'data' => 'window.jQuery || document.write("<script src=\'' . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\' integrity=\''sha384-hK8q2gkBjirpIGHAH+sgqYMv6i6mfx2JVZWJ50jyYhkuEHASU6AS1UTWSo32wuGL\' crossorigin=\''anonymous\'>\x3C/script>")',
++    'data' => 'window.jQuery || document.write("<script src=\'' . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\' . ' integrity=\'sha384-hK8q2gkBjirpIGHAH+sgqYMv6i6mfx2JVZWJ50jyYhkuEHASU6AS1UTWSo32wuGL\'' . ' crossorigin=\'anonymous\'' . '>\x3C/script>")',
      'type' => 'inline',
      'group' => JS_LIBRARY,
      'weight' => -19.999999999,
@@ -15,7 +15,7 @@ index 9d143be..6f50e69 100644
    $js_path = ($min == '.min') ? '/replace/ui/ui/minified/jquery-ui.min.js' : '/replace/ui/ui/jquery-ui.js';
    $javascript['ui']['js'][] = array(
      'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\'>\x3C/script>")',
-+    'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\' integrity=\''sha384-O4jIYc8wiFPNf25AwmeP5qRInqzSLJuM9t+u843Al1M/OO67y4JsVjlJGaUl4N7J\' crossorigin=\''anonymous\'>\x3C/script>")',
++    'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\' integrity=\'sha384-O4jIYc8wiFPNf25AwmeP5qRInqzSLJuM9t+u843Al1M/OO67y4JsVjlJGaUl4N7J\'' . ' crossorigin=\'anonymous\'' . '>\x3C/script>")',
      'type' => 'inline',
      'group' => JS_LIBRARY,
      'weight' => -10.999999999,

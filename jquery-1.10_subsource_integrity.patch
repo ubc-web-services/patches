@@ -1,21 +1,29 @@
 diff --git a/jquery_update.module b/jquery_update.module
-index 9d143be..6f50e69 100644
+index 9d143be..00fd185 100644
 --- a/jquery_update.module
 +++ b/jquery_update.module
-@@ -326,7 +326,7 @@ function jquery_update_jquery_replace(&$javascript, $cdn, $path, $min, $version)
+@@ -325,8 +325,10 @@ function jquery_update_jquery_replace(&$javascript, $cdn, $path, $min, $version)
+  *   The verison of jQuery to use.
   */
  function jquery_update_jquery_backup(&$javascript, $path, $min, $version) {
++  global $base_url;
++
    $javascript['jquery']['js'][] = array(
 -    'data' => 'window.jQuery || document.write("<script src=\'' . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\'>\x3C/script>")',
-+    'data' => 'window.jQuery || document.write("<script src=\'' . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\' . ' integrity=\'sha384-hK8q2gkBjirpIGHAH+sgqYMv6i6mfx2JVZWJ50jyYhkuEHASU6AS1UTWSo32wuGL\'' . ' crossorigin=\'anonymous\'' . '>\x3C/script>")',
++    'data' => 'window.jQuery || document.write("<script src=\'' . $base_url . base_path() . $path . '/replace/jquery/' . $version . '/jquery' . $min . '.js\'>\x3C/script>")',
      'type' => 'inline',
      'group' => JS_LIBRARY,
      'weight' => -19.999999999,
-@@ -466,6 +466,7 @@ function jquery_update_jqueryui_backup(&$javascript, $path, $min) {
+@@ -463,9 +465,11 @@ function jquery_update_make_library_hook_to_file_name_segment_map_for_effects($m
+  *   version.
+  */
+ function jquery_update_jqueryui_backup(&$javascript, $path, $min) {
++  global $base_url;
++
    $js_path = ($min == '.min') ? '/replace/ui/ui/minified/jquery-ui.min.js' : '/replace/ui/ui/jquery-ui.js';
    $javascript['ui']['js'][] = array(
-     'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\'>\x3C/script>")',
-+    'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\' integrity=\'sha384-O4jIYc8wiFPNf25AwmeP5qRInqzSLJuM9t+u843Al1M/OO67y4JsVjlJGaUl4N7J\'' . ' crossorigin=\'anonymous\'' . '>\x3C/script>")',
+-    'data' => 'window.jQuery.ui || document.write("<script src=\'' . base_path() . $path . $js_path . '\'>\x3C/script>")',
++    'data' => 'window.jQuery.ui || document.write("<script src=\'' . $base_url . base_path() . $path . $js_path . '\'>\x3C/script>")',
      'type' => 'inline',
      'group' => JS_LIBRARY,
      'weight' => -10.999999999,

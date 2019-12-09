@@ -1,0 +1,68 @@
+diff --git a/simplesamlphp_auth.inc b/simplesamlphp_auth.inc
+index 9a27796..3246197 100644
+--- a/simplesamlphp_auth.inc
++++ b/simplesamlphp_auth.inc
+@@ -129,7 +129,9 @@ function _simplesaml_auth_user_register($authname) {
+     if (!empty($user->uid)) {
+       // Populate roles based on configuration setting.
+       $roles = _simplesamlphp_auth_rolepopulation(variable_get('simplesamlphp_auth_rolepopulation', ''));
+-      $userinfo = array('roles' => $roles);
++      // Take the roles we want to update and add them to the user's
++      // existing roles. This effectively adds or revokes roles.
++      $userinfo = array('roles' => $roles + $user->roles);
+       $user = user_save($user, $userinfo);
+ 
+       return $user;
+@@ -207,8 +209,9 @@ function _simplesaml_auth_user_login($ext_user) {
+       watchdog('simplesamlphp_auth', 'User already registered [%authname] updating roles.', array('%authname' => $ext_user->name), WATCHDOG_DEBUG);
+     }
+     $roles = _simplesamlphp_auth_rolepopulation(variable_get('simplesamlphp_auth_rolepopulation', ''));
+-    $userinfo = array('roles' => $roles);
+-
++    // Take the roles we want to update and add them to the user's
++    // existing roles. This effectively adds or revokes roles.
++    $userinfo = array('roles' => $roles + $ext_user->roles);
+     // Save the updated roles and populate the user object.
+     $user = user_save($ext_user, $userinfo);
+   }
+diff --git a/simplesamlphp_auth.module b/simplesamlphp_auth.module
+index b888814..1d25679 100644
+--- a/simplesamlphp_auth.module
++++ b/simplesamlphp_auth.module
+@@ -295,8 +295,12 @@ function simplesamlphp_auth_form_alter(&$form, $form_state, $form_id) {
+ 
+   $login_path = variable_get('simplesamlphp_auth_login_path', 'saml_login');
+   $login_name = variable_get('simplesamlphp_auth_login_link_display_name', t('Federated Log In'));
++  $login_image = '<img alt="' . $login_name . '" src="' . path_to_theme() . '/img/cwl-login-btn.gif" />';
++
+   $destination = drupal_get_destination();
+-  $link = l($login_name, $login_path, array('query' => $destination));
++  $link = l($login_image, $login_path, array(
++    'query' => $destination,
++    'html' => TRUE));
+ 
+   // Add SAML login link to user login form.
+   if ($form_id == 'user_login_block' || $form_id == 'user_account_form') {
+@@ -306,7 +310,9 @@ function simplesamlphp_auth_form_alter(&$form, $form_state, $form_id) {
+   }
+ 
+   if ($form_id == 'user_login') {
++    $form['links']['#prefix'] = '<div class="btn cwl-login pull-right">';
+     $form['links']['#markup'] = $link;
++    $form['links']['#suffix'] = '</div>';
+   }
+ 
+   if (($form_id == 'user_register_form' || $is_user_profile_account_form) && user_access('change saml authentication setting')) {
+@@ -668,6 +674,12 @@ function _simplesamlphp_auth_rolepopulation($rolemap) {
+           watchdog('simplesamlphp_auth', 'Add new role: %roleid', array('%roleid' => $roleid), WATCHDOG_DEBUG);
+         }
+       }
++      else {
++        $roles[$roleid] = 0;
++        if (variable_get('simplesamlphp_auth_debug', 0)) {
++          watchdog('simplesamlphp_auth', 'Revoke role: %roleid', array('%roleid' => $roleid), WATCHDOG_DEBUG);
++        }
++      }
+ 
+     }
+   }

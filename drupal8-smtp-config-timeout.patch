@@ -25,14 +25,13 @@ index cda9cd0..1128d11 100644
        type: string
        label: 'Username'
 diff --git a/smtp.install b/smtp.install
-index 389f250..579038f 100644
+index ae9cb2a..e3cc079 100644
 --- a/smtp.install
 +++ b/smtp.install
-@@ -22,3 +22,12 @@ function smtp_uninstall() {
-   // Cleaning garbage.
+@@ -25,6 +25,15 @@ function smtp_uninstall() {
    $smtp_config->delete();
  }
-+
+ 
 +/**
 + * Add SMTP timeout configuration and change default to 30.
 + */
@@ -41,8 +40,12 @@ index 389f250..579038f 100644
 +    ->set('smtp_timeout', 30)
 +    ->save(TRUE);
 +}
++
+ /**
+  * Implements hook_install().
+  */
 diff --git a/src/Form/SMTPConfigForm.php b/src/Form/SMTPConfigForm.php
-index e6c93aa..28633ea 100644
+index cf58d2c..47335b2 100644
 --- a/src/Form/SMTPConfigForm.php
 +++ b/src/Form/SMTPConfigForm.php
 @@ -133,7 +133,13 @@ class SMTPConfigForm extends ConfigFormBase {
@@ -52,9 +55,9 @@ index e6c93aa..28633ea 100644
 -
 +    $form['server']['smtp_timeout'] = [
 +      '#type' => 'textfield',
-+      '#title' => t('Timeout'),
++      '#title' => $this->t('Timeout'),
 +      '#default_value' => $config->get('smtp_timeout'),
-+      '#description' => t('Amount of seconds for the SMTP commands to timeout.'),
++      '#description' => $this->t('Amount of seconds for the SMTP commands to timeout.'),
 +      '#disabled' => $this->isOverridden('smtp_timeout'),
 +    ];
      $form['auth'] = [
@@ -69,16 +72,26 @@ index e6c93aa..28633ea 100644
        'smtp_from',
        'smtp_fromname',
 diff --git a/src/Plugin/Mail/SMTPMailSystem.php b/src/Plugin/Mail/SMTPMailSystem.php
-index 1ca4205..a75e9b6 100644
+index 93f764c..d7f8b37 100644
 --- a/src/Plugin/Mail/SMTPMailSystem.php
 +++ b/src/Plugin/Mail/SMTPMailSystem.php
-@@ -141,7 +141,8 @@ class SMTPMailSystem implements MailInterface, ContainerFactoryPluginInterface {
+@@ -141,6 +141,7 @@ class SMTPMailSystem implements MailInterface, ContainerFactoryPluginInterface {
  
      // Create a new PHPMailer object - autoloaded from registry.
-     $mailer = new PHPMailer();
--
+     $mailer = new PHPMailer(TRUE);
 +    $mailer->Timeout = $this->smtpConfig->get('smtp_timeout');
-+    
+ 
      // Turn on debugging, if requested.
      if ($this->smtpConfig->get('smtp_debugging') && \Drupal::currentUser()->hasPermission('administer smtp module')) {
-       $mailer->SMTPDebug = TRUE;
+diff --git a/tests/src/Unit/SMTPConfigFormTest.php b/tests/src/Unit/SMTPConfigFormTest.php
+index 93fb785..d3ab0ac 100644
+--- a/tests/src/Unit/SMTPConfigFormTest.php
++++ b/tests/src/Unit/SMTPConfigFormTest.php
+@@ -56,6 +56,7 @@ class SMTPConfigFormTest extends UnitTestCase {
+     $this->mockConfig->get('smtp_hostbackup')->willReturn('');
+     $this->mockConfig->get('smtp_port')->willReturn('');
+     $this->mockConfig->get('smtp_protocol')->willReturn('');
++    $this->mockConfig->get('smtp_timeout')->willReturn('');
+     $this->mockConfig->get('smtp_username')->willReturn('');
+     $this->mockConfig->get('smtp_password')->willReturn('');
+     $this->mockConfig->get('smtp_from')->willReturn('');

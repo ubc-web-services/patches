@@ -2,6 +2,10 @@
 
 A central repository for collecting patches required for building Web Services' Drupal websites.
 
+## 3114989-18.patch
+
+Fixes the error: SMTP module is enabled, turned on, but SmtpConnect() threw exception SMTP Error: Could not authenticate.
+
 ## simplesamlphp_auth_cwl_login-final.patch
 
 Adds an image to the Campus Wide Login link when using SimpleSAML. The image must reside in your theme at '/img/cwl-login-btn.gif"

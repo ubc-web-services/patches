@@ -1,0 +1,26 @@
+diff --git a/modules/redirect_domain/src/EventSubscriber/DomainRedirectRequestSubscriber.php b/modules/redirect_domain/src/EventSubscriber/DomainRedirectRequestSubscriber.php
+index bc949b8..532cecd 100644
+--- a/modules/redirect_domain/src/EventSubscriber/DomainRedirectRequestSubscriber.php
++++ b/modules/redirect_domain/src/EventSubscriber/DomainRedirectRequestSubscriber.php
+@@ -91,7 +91,7 @@ class DomainRedirectRequestSubscriber implements EventSubscriberInterface {
+         if ($destination) {
+           // Use the default status code from Redirect.
+           $response = new TrustedRedirectResponse(
+-            $protocol . $destination,
++            $destination,
+             $this->redirectConfig->get('default_status_code')
+           );
+           $event->setResponse($response);
+diff --git a/modules/redirect_domain/src/Form/RedirectDomainForm.php b/modules/redirect_domain/src/Form/RedirectDomainForm.php
+index 7a193af..5354d97 100644
+--- a/modules/redirect_domain/src/Form/RedirectDomainForm.php
++++ b/modules/redirect_domain/src/Form/RedirectDomainForm.php
+@@ -133,7 +133,7 @@ class RedirectDomainForm extends ConfigFormBase {
+     if ($redirects = $form_state->getValue('redirects')) {
+       foreach ($redirects as $redirect) {
+         if (strpos($redirect['from'], '://') !== FALSE) {
+-          $form_state->setErrorByName('redirects', $this->t('No protocol should be included in the redirect domain.'));
++          
+         }
+       }
+     }

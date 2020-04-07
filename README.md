@@ -40,7 +40,3 @@ Patches 7.x-1.8 verison of Inline Entity Form (used by students.ubc.ca)
 ## civicrm-mail-header.patch
 
 Patches CiviCRM to disallow the modification of mail headers (test).
-
-## a11y-quail-path.patch
-
-Patches v.1.1.1 of CKEditor's a11y library, updating the path to the quail resources (test).

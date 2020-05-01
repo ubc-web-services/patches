@@ -1,0 +1,26 @@
+diff --git a/ubc_saml_auth.module b/ubc_saml_auth.module
+index daa0236..cb84402 100644
+--- a/ubc_saml_auth.module
++++ b/ubc_saml_auth.module
+@@ -27,6 +27,7 @@ function ubc_saml_auth_admin() {
+     '#title' => t('Protected paths'),
+     '#default_value' => variable_get('ubc_saml_auth_protected_path', ''),
+     '#description' => t("The list of paths aliases that should be CWL protected separated by commas."),
++    '#maxlength' => 512,
+     '#required' => FALSE,
+   );
+   $form['ubc_saml_auth_wildcard'] = array(
+@@ -130,8 +131,11 @@ function ubc_saml_auth_node_access($node, $op, $account) {
+ 
+       if($UBC_PSH_BRANCH == 'master') {
+         if($_SERVER['SCRIPT_NAME'] != '/cron.php') {
+-          watchdog('UBC_SAML_AUTH', 'drupal_goto: '.$_SERVER['SCRIPT_NAME']);
+-          drupal_goto('saml_login', array('query' => array('ReturnTo' => $rtn_url)));
++          // don't redirect for drush
++          if (! (function_exists('drush_main') && drupal_is_cli())) {
++            watchdog('UBC_SAML_AUTH', 'drupal_goto: '.$_SERVER['SCRIPT_NAME']);
++            drupal_goto('saml_login', array('query' => array('ReturnTo' => $rtn_url)));
++          }
+         }
+       }
+       else {

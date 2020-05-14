@@ -1,0 +1,12 @@
+diff --git a/config/install/smtp.settings.yml b/config/install/smtp.settings.yml
+index 24cd3c2..dbfe57b 100644
+--- a/config/install/smtp.settings.yml
++++ b/config/install/smtp.settings.yml
+@@ -3,6 +3,7 @@ smtp_host: ''
+ smtp_hostbackup: ''
+ smtp_port: '25'
+ smtp_protocol: 'standard'
++smtp_timeout: 30
+ smtp_autotls: true
+ smtp_timeout: 30
+ smtp_username: ''

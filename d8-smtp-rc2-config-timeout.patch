@@ -1,0 +1,13 @@
+diff --git a/config/install/smtp.settings.yml b/config/install/smtp.settings.yml
+index 24cd3c2..35b0b1d 100644
+--- a/config/install/smtp.settings.yml
++++ b/config/install/smtp.settings.yml
+@@ -7,7 +7,7 @@ smtp_autotls: true
+ smtp_timeout: 30
+ smtp_username: ''
+ smtp_password: ''
+-smtp_from: ''
++smtp_from: 'no-reply.webservices@ubc.ca'
+ smtp_fromname: ''
+ smtp_client_hostname: ''
+ smtp_client_helo: ''

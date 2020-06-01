@@ -1,0 +1,85 @@
+diff --git a/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js b/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js
+new file mode 100644
+index 0000000000..d12a5780fc
+--- /dev/null
++++ b/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js
+@@ -0,0 +1,49 @@
++/**
++ * Override jQuery Form's ajaxSubmit method in order to prevent it setting
++ * iframeSrc to javascript:false for https requests, because that no longer
++ * works with Chromium-based browsers.
++ * - https://www.drupal.org/project/drupal/issues/3138421
++ *
++ * Aim to be compatible with jQuery Form v4.2.2
++ * - https://github.com/jquery-form/form/blob/v4.2.2/src/jquery.form.js#L121
++ */
++
++(function (jQuery) {
++
++  // Exclude Internet Explorer / Trident-based browsers.
++  var ua = navigator.userAgent;
++  if (ua.indexOf("MSIE ") > -1 || ua.indexOf("Trident/") > -1) {
++    return;
++  }
++
++  var fnOriginalAjaxSubmit = jQuery.fn.ajaxSubmit;
++  jQuery.fn.extend({
++    ajaxSubmit: function (options, data, dataType, onSuccess) {
++
++      if (typeof options === 'function') {
++        options = { success: options };
++
++      } else if (typeof options === 'string' || (options === false && arguments.length > 0)) {
++        options = {
++          'url': options,
++          'data': data,
++          'dataType': dataType
++        };
++
++        if (typeof onSuccess === 'function') {
++          options.success = onSuccess;
++        }
++
++      } else if (typeof options === 'undefined') {
++        options = {};
++      }
++
++      options = jQuery.extend(true, {
++        iframeSrc: 'about:blank'
++      }, options);
++
++      return fnOriginalAjaxSubmit.call(this, options, data, dataType, onSuccess);
++    }
++  });
++
++})(jQuery);
+diff --git a/core/core.libraries.yml b/core/core.libraries.yml
+index 5472c9ffa8..d6cce1a6d4 100644
+--- a/core/core.libraries.yml
++++ b/core/core.libraries.yml
+@@ -409,6 +409,7 @@ jquery.form:
+     gpl-compatible: true
+   js:
+     assets/vendor/jquery-form/jquery.form.min.js: { minified: true }
++    assets/vendor/jquery-form/jquery-ajaxsubmit.js: {}
+   dependencies:
+     - core/jquery
+ 
+diff --git a/core/modules/system/system.post_update.php b/core/modules/system/system.post_update.php
+index dbcda940d1..3e7584e09a 100644
+--- a/core/modules/system/system.post_update.php
++++ b/core/modules/system/system.post_update.php
+@@ -105,6 +105,13 @@ function system_post_update_fix_jquery_htmlprefilter() {
+   // Empty post-update hook.
+ }
+ 
++/**
++ * Clear the library cache and ensure aggregate files are regenerated.
++ */
++function system_post_update_fix_jquery_form_ajaxsubmit() {
++  // Empty post-update hook.
++}
++
+ /**
+  * Change plugin IDs of actions.
+  */

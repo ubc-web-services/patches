@@ -1,16 +1,18 @@
-diff --git a/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js b/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js
+diff --git a/misc/jquery-ajaxsubmit.js b/misc/jquery-ajaxsubmit.js
 new file mode 100644
-index 0000000000..d12a5780fc
+index 0000000000..0553e3cc25
 --- /dev/null
-+++ b/core/assets/vendor/jquery-form/jquery-ajaxsubmit.js
-@@ -0,0 +1,49 @@
++++ b/misc/jquery-ajaxsubmit.js
+@@ -0,0 +1,55 @@
 +/**
 + * Override jQuery Form's ajaxSubmit method in order to prevent it setting
 + * iframeSrc to javascript:false for https requests, because that no longer
 + * works with Chromium-based browsers.
 + * - https://www.drupal.org/project/drupal/issues/3138421
 + *
-+ * Aim to be compatible with jQuery Form v4.2.2
++ * Drupal 7 ships with version 2.52 of jQuery Form
++ * - https://github.com/jquery-form/form/blob/df9cb101b9c9c085c8d75ad980c7ff1cf62063a1/jquery.form.js#L42
++ * Aim to also be compatible with recent releases such as v4.2.2
 + * - https://github.com/jquery-form/form/blob/v4.2.2/src/jquery.form.js#L121
 + */
 +
@@ -25,10 +27,14 @@ index 0000000000..d12a5780fc
 +  var fnOriginalAjaxSubmit = jQuery.fn.ajaxSubmit;
 +  jQuery.fn.extend({
 +    ajaxSubmit: function (options, data, dataType, onSuccess) {
++      // fast fail if nothing selected (http://dev.jquery.com/ticket/2752)
++      if (!this.length) {
++        log('ajaxSubmit: skipping submit process - no element selected');
++        return this;
++      }
 +
-+      if (typeof options === 'function') {
++      if (typeof options == 'function') {
 +        options = { success: options };
-+
 +      } else if (typeof options === 'string' || (options === false && arguments.length > 0)) {
 +        options = {
 +          'url': options,
@@ -53,33 +59,33 @@ index 0000000000..d12a5780fc
 +  });
 +
 +})(jQuery);
-diff --git a/core/core.libraries.yml b/core/core.libraries.yml
-index 5472c9ffa8..d6cce1a6d4 100644
---- a/core/core.libraries.yml
-+++ b/core/core.libraries.yml
-@@ -409,6 +409,7 @@ jquery.form:
-     gpl-compatible: true
-   js:
-     assets/vendor/jquery-form/jquery.form.min.js: { minified: true }
-+    assets/vendor/jquery-form/jquery-ajaxsubmit.js: {}
-   dependencies:
-     - core/jquery
- 
-diff --git a/core/modules/system/system.post_update.php b/core/modules/system/system.post_update.php
-index dbcda940d1..3e7584e09a 100644
---- a/core/modules/system/system.post_update.php
-+++ b/core/modules/system/system.post_update.php
-@@ -105,6 +105,13 @@ function system_post_update_fix_jquery_htmlprefilter() {
-   // Empty post-update hook.
+diff --git a/modules/system/system.install b/modules/system/system.install
+index 93afb06f78..ec93243a8b 100644
+--- a/modules/system/system.install
++++ b/modules/system/system.install
+@@ -3299,6 +3299,13 @@ function system_update_7083() {
+   // Empty update to force a rebuild of hook_library() and JS aggregates.
  }
  
 +/**
-+ * Clear the library cache and ensure aggregate files are regenerated.
++ * Add 'jquery-ajaxsubmit.js' to the 'jquery.form' library.
 + */
-+function system_post_update_fix_jquery_form_ajaxsubmit() {
-+  // Empty post-update hook.
++function system_update_7084() {
++  // Empty update to force a rebuild of hook_library() and JS aggregates.
 +}
 +
  /**
-  * Change plugin IDs of actions.
-  */
+  * @} End of "defgroup updates-7.x-extra".
+  * The next series of updates should start at 8000.
+diff --git a/modules/system/system.module b/modules/system/system.module
+index 02785ef575..3c8f74802f 100644
+--- a/modules/system/system.module
++++ b/modules/system/system.module
+@@ -1210,6 +1210,7 @@ function system_library() {
+     'version' => '2.52',
+     'js' => array(
+       'misc/jquery.form.js' => array(),
++      'misc/jquery-ajaxsubmit.js' => array(),
+     ),
+     'dependencies' => array(
+       array('system', 'jquery.cookie'),

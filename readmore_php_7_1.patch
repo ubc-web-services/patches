@@ -1,0 +1,13 @@
+diff --git a/readmore.field.inc b/readmore.field.inc
+index 28b1171..c5ea2ad 100644
+--- a/readmore.field.inc
++++ b/readmore.field.inc
+@@ -94,7 +94,7 @@ function readmore_field_formatter_settings_form($field, $instance, $view_mode, $
+ function readmore_field_formatter_settings_summary($field, $instance, $view_mode) {
+   $display = $instance['display'][$view_mode];
+   $settings = $display['settings'];
+-  $summary = '';
++  $summary = array();
+ 
+   if ($display['type'] == 'readmore') {
+     $summary[] = t('Trim length: @length', array('@length' => $settings['readmore_trim_length']));

@@ -1,0 +1,22 @@
+diff --git a/src/Service/SimplesamlphpDrupalAuth.php b/src/Service/SimplesamlphpDrupalAuth.php
+index de367cc..905a842 100644
+--- a/src/Service/SimplesamlphpDrupalAuth.php
++++ b/src/Service/SimplesamlphpDrupalAuth.php
+@@ -301,6 +301,9 @@ class SimplesamlphpDrupalAuth {
+     $account_updated = FALSE;
+ 
+     // Remove non-locked roles not mapped to the user via SAML.
++    /* 
++    UBC IT Web Services - Don't do this!
++    
+     foreach (array_diff($current_roles, $matching_roles) as $role_id) {
+       if ($this->config->get('debug')) {
+         $this->logger->debug('Removing role %role from user %name', [
+@@ -311,6 +314,7 @@ class SimplesamlphpDrupalAuth {
+       $account->removeRole($role_id);
+       $account_updated = TRUE;
+     }
++    */
+ 
+     // Add roles mapped to the user via SAML.
+     foreach (array_diff($matching_roles, $current_roles) as $role_id) {

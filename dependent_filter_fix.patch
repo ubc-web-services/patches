@@ -1,0 +1,19 @@
+diff --git a/js/dependent.js b/js/dependent.js
+index 6e4b796..1251c7c 100644
+--- a/js/dependent.js
++++ b/js/dependent.js
+@@ -196,12 +196,14 @@
+                   // Show if the element if criteria is matched
+                   object.show(0);
+                   object.addClass('dependent-options');
++                  $(object).parents('.views-exposed-widget').show(0);
+                 }
+                 else {
+                   // Otherwise hide. Use css rather than hide() because hide()
+                   // does not work if the item is already hidden, for example,
+                   // in a collapsed fieldset.
+                   object.css('display', 'none');
++                  $(object).parents('.views-exposed-widget').css('display', 'none');
+                 }
+               }
+             }

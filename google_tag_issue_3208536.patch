@@ -1,7 +1,7 @@
-diff --git a/manager.inc~ b/manager.inc
+diff --git a/includes/entity/manager.inc~ b/includes/entity/manager.inc
 index 7b9a03c..dd28ac9 100644
---- a/manager.inc
-+++ b/manager.inc
+--- a/includes/entity/manager.inc
++++ b/includes/entity/manager.inc
 @@ -120,6 +120,7 @@ class GTMContainerManager implements ContainerManagerInterface {
     * {@inheritdoc}
     */

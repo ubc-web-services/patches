@@ -1,0 +1,45 @@
+diff --git a/manager.inc~ b/manager.inc
+index 7b9a03c..dd28ac9 100644
+--- a/manager.inc
++++ b/manager.inc
+@@ -120,6 +120,7 @@ class GTMContainerManager implements ContainerManagerInterface {
+    * {@inheritdoc}
+    */
+   public function getScriptAttachments(array &$page) {
++    $attachments = [];
+     $containers = $this->loadContainers();
+     foreach ($containers as $container) {
+       if (!$container->insertSnippet()) {
+@@ -137,7 +138,7 @@ class GTMContainerManager implements ContainerManagerInterface {
+ 
+       $data_layer = $container->get('data_layer');
+       if ($include_classes && module_exists('datalayer') && $data_layer == 'dataLayer') {
+-        $container->dataLayerSnippet($classes);
++        $attachments[] = $container->dataLayerSnippet($classes);
+         if ($classes) {
+           // Add data_layer using dataLayer module.
+           datalayer_add($classes);
+@@ -150,7 +151,7 @@ class GTMContainerManager implements ContainerManagerInterface {
+         foreach ($types as $type) {
+           // @todo Will it matter if file is empty?
+           // @todo Check config for the whitelist and blacklist classes before adding.
+-          $container->fileTag($type, $weight++);
++          $attachments[] = $container->fileTag($type, $weight++);
+         }
+       }
+       else {
+@@ -158,10 +159,13 @@ class GTMContainerManager implements ContainerManagerInterface {
+           // @see drupal_get_js() in 7.x core.
+           // For inline JavaScript to validate as XHTML, all JavaScript containing
+           // XHTML needs to be wrapped in CDATA.
+-          $container->inlineTag($type, $weight++);
++          $attachments[] = $container->inlineTag($type, $weight++);
+         }
+       }
+     }
++    foreach ($attachments as $attachment) {
++      drupal_add_html_head($attachment[0], $attachment[1]);
++    }
+   }
+ 
+   /**

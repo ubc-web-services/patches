@@ -1,4 +1,4 @@
-diff --git a/includes/entity/manager.inc~ b/includes/entity/manager.inc
+diff --git a/includes/entity/manager.inc b/includes/entity/manager.inc
 index 7b9a03c..dd28ac9 100644
 --- a/includes/entity/manager.inc
 +++ b/includes/entity/manager.inc

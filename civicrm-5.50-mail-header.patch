@@ -1,0 +1,21 @@
+diff --git a/vendor/pear/mail/Mail/smtp.php b/vendor/pear/mail/Mail/smtp.php
+index 5e698fee..1dfd3591 100644
+--- a/vendor/pear/mail/Mail/smtp.php
++++ b/vendor/pear/mail/Mail/smtp.php
+@@ -286,12 +286,16 @@ class Mail_smtp extends Mail {
+         }
+         list($from, $textHeaders) = $headerElements;
+
++        // TEST AS PER https://wiki.civicrm.org/confluence/display/CRMDOC/Bounce+Handling%20
+         /* Since few MTAs are going to allow this header to be forged
+          * unless it's in the MAIL FROM: exchange, we'll use
+          * Return-Path instead of From: if it's set. */
+-        if (!empty($headers['Return-Path'])) {
+-            $from = $headers['Return-Path'];
+-        }
++        //if (!empty($headers['Return-Path'])) {
++        //    $from = $headers['Return-Path'];
++        //}
+
+         if (!isset($from)) {
+             $this->_smtp->rset();

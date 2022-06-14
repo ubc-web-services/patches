@@ -12,7 +12,7 @@ index 5949b65..bf9ee28 100644
 +    // as we want user to be returned to requested URL as per ReturnTo param
 +    \Drupal::logger('redirect_on_login')->notice("roles: " . print_r($roles, TRUE));
 +    if(2 == count($roles)
-+    && in_array('CWL', $roles)
++    && in_array('cwl', $roles)
 +    && in_array('authenticated', $roles)) {
 +      \Drupal::logger('redirect_on_login')->notice("Don't redirect - CWL and authenticated role only");
 +      return;

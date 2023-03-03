@@ -1,0 +1,13 @@
+diff --git a/src/MediaMaker.php b/src/MediaMaker.php
+index 80ef63c..7261396 100644
+--- a/src/MediaMaker.php
++++ b/src/MediaMaker.php
+@@ -234,7 +234,7 @@ class MediaMaker implements ContainerInjectionInterface {
+       if (!$media) {
+         // Create media entity with saved file.
+         $media = $this->entityManager->getStorage('media')->create([
+-          'bundle' => 'document',
++          'bundle' => 'file',
+           'field_original_ref' => $hash,
+           $this->config->get('document_field_name') => [
+             'target_id' => $file_id,

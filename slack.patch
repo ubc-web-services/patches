@@ -7,7 +7,7 @@ index 78b1c6d..dc000d8 100644
  
      if ($this->manager->limit($request)) {
 +
-+      $cmd = 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"HTTP_TOO_MANY_REQUESTS SENT"}\' https://hooks.slack.com/services/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';
++      $cmd = 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"HTTP_TOO_MANY_REQUESTS SENT"}\' https://hooks.slack.com/services/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';
 +      exec($cmd);
 +
        $headers = ['Retry-After' => $this->manager->retryAfter()];

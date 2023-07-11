@@ -1,0 +1,15 @@
+diff --git a/src/CrawlerRateLimitMiddleware.php b/src/CrawlerRateLimitMiddleware.php
+index 78b1c6d..fa92d8e 100644
+--- a/src/CrawlerRateLimitMiddleware.php
++++ b/src/CrawlerRateLimitMiddleware.php
+@@ -45,6 +45,10 @@ class CrawlerRateLimitMiddleware implements HttpKernelInterface {
+   public function handle(Request $request, $type = self::MAIN_REQUEST, $catch = TRUE): Response {
+ 
+     if ($this->manager->limit($request)) {
++
++      $cmd = 'curl -X POST --data-urlencode "payload={\'channel\': \'#calendar-alerts\', \'username\': \'vancouver\', \'text\': \'HTTP_TOO_MANY_REQUESTS SENT \', \'icon_emoji\': \':postbox:\'}" https://hooks.slack.com/services/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';
++      exec($cmd);
++
+       $headers = ['Retry-After' => $this->manager->retryAfter()];
+       return new Response(new FormattableMarkup('Too many requests.', []), Response::HTTP_TOO_MANY_REQUESTS, $headers);
+     }

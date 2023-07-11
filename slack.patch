@@ -1,5 +1,5 @@
 diff --git a/src/CrawlerRateLimitMiddleware.php b/src/CrawlerRateLimitMiddleware.php
-index 78b1c6d..fa92d8e 100644
+index 78b1c6d..dc000d8 100644
 --- a/src/CrawlerRateLimitMiddleware.php
 +++ b/src/CrawlerRateLimitMiddleware.php
 @@ -45,6 +45,10 @@ class CrawlerRateLimitMiddleware implements HttpKernelInterface {
@@ -7,7 +7,7 @@ index 78b1c6d..fa92d8e 100644
  
      if ($this->manager->limit($request)) {
 +
-+      $cmd = 'curl -X POST --data-urlencode "payload={\'channel\': \'#calendar-alerts\', \'username\': \'vancouver\', \'text\': \'HTTP_TOO_MANY_REQUESTS SENT \', \'icon_emoji\': \':postbox:\'}" https://hooks.slack.com/services/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';
++      $cmd = 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"HTTP_TOO_MANY_REQUESTS SENT"}\' https://hooks.slack.com/services/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';
 +      exec($cmd);
 +
        $headers = ['Retry-After' => $this->manager->retryAfter()];

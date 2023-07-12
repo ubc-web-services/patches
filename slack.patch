@@ -1,13 +1,27 @@
 diff --git a/src/CrawlerRateLimitMiddleware.php b/src/CrawlerRateLimitMiddleware.php
-index 78b1c6d..dc000d8 100644
+index 78b1c6d..d277b65 100644
 --- a/src/CrawlerRateLimitMiddleware.php
 +++ b/src/CrawlerRateLimitMiddleware.php
-@@ -45,6 +45,10 @@ class CrawlerRateLimitMiddleware implements HttpKernelInterface {
+@@ -45,6 +45,24 @@ class CrawlerRateLimitMiddleware implements HttpKernelInterface {
    public function handle(Request $request, $type = self::MAIN_REQUEST, $catch = TRUE): Response {
  
      if ($this->manager->limit($request)) {
 +
-+      $cmd = 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"HTTP_TOO_MANY_REQUESTS SENT"}\' https://hooks.slack.com/services/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';
++      // Prepare notification message
++      $msg = (theme_get_setting('clf_unit_campus') == 'okanagan')? 'Okanagan Calendar':'Vancouver Calendar';
++
++      // Add information about the current environment
++      $UBC_PSH_BRANCH = getenv('PLATFORM_BRANCH');
++      if($UBC_PSH_BRANCH == '' ) {
++        $msg .= ' - LOCAL';
++      }
++      else {
++        $msg .= ' - '.$UBC_PSH_BRANCH;
++      }
++      $msg .= '\nHTTP_TOO_MANY_REQUESTS';
++
++      $cmd = 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"'.$msg.'"}\' https://hooks.slack.com/services/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';
++
 +      exec($cmd);
 +
        $headers = ['Retry-After' => $this->manager->retryAfter()];

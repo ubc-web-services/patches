@@ -1,0 +1,14 @@
+diff --git a/src/CrawlerRateLimitMiddleware.php b/src/CrawlerRateLimitMiddleware.php
+index 78b1c6d..01f58c5 100644
+--- a/src/CrawlerRateLimitMiddleware.php
++++ b/src/CrawlerRateLimitMiddleware.php
+@@ -45,6 +45,9 @@ class CrawlerRateLimitMiddleware implements HttpKernelInterface {
+   public function handle(Request $request, $type = self::MAIN_REQUEST, $catch = TRUE): Response {
+ 
+     if ($this->manager->limit($request)) {
++
++      \Drupal::logger('crawler_rate_limit')->alert('HTTP 429 SENT');
++
+       $headers = ['Retry-After' => $this->manager->retryAfter()];
+       return new Response(new FormattableMarkup('Too many requests.', []), Response::HTTP_TOO_MANY_REQUESTS, $headers);
+     }

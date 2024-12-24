@@ -1,0 +1,13 @@
+--- /app/public/sites/all/modules/webform/components/time.inc
++++ /app/public/sites/all/modules/webform/components/time.inc	
+@@ -733,7 +733,7 @@
+  */
+ function _webform_submit_time($component, $value) {
+   // Convert to 24-hour time before string conversion.
+   if ($component['extra']['hourformat'] == '12-hour') {
+     $value = webform_time_convert($value, '24-hour');
+   }
+
+-  return ($value['hour'] ?? '') !== '' ? webform_date_string($value, 'time') : '';
++  return isset($value['hour']) && $value['hour'] !== '' ? webform_date_string($value, 'time') : '';
+ }

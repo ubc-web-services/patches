@@ -1,0 +1,13 @@
+diff --git a/modules/webform_node/config/optional/node.type.webform.yml b/modules/webform_node/config/optional/node.type.webform.yml
+index 3d2a18e4c..880a1bf29 100644
+--- a/modules/webform_node/config/optional/node.type.webform.yml
++++ b/modules/webform_node/config/optional/node.type.webform.yml
+@@ -7,7 +7,7 @@ dependencies:
+ name: Webform
+ type: webform
+ description: 'A basic page with a webform attached.'
+-help: ''
++help: null
+ new_revision: false
+ preview_mode: 1
+ display_submitted: true

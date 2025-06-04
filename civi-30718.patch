@@ -1,0 +1,12 @@
+diff --git a/ext/flexmailer/src/API/MailingPreview.php b/ext/flexmailer/src/API/MailingPreview.php
+index 4d7fafbe..a2c80486 100644
+--- a/ext/flexmailer/src/API/MailingPreview.php
++++ b/ext/flexmailer/src/API/MailingPreview.php
+@@ -52,6 +52,7 @@ class MailingPreview {
+     };
+     $job->mailing_id = $mailing->id ?: NULL;
+     $job->status = 'Complete';
++    $job->find(TRUE);
+ 
+     $flexMailer = new FlexMailer([
+       'is_preview' => TRUE,

@@ -1,0 +1,12 @@
+diff --git a/src/Entity/Remote.php b/src/Entity/Remote.php
+index 3ca8080..6d2181b 100644
+--- a/src/Entity/Remote.php
++++ b/src/Entity/Remote.php
+@@ -16,6 +16,7 @@ use Drupal\entity_share_client\ClientAuthorization\ClientAuthorizationInterface;
+  *   label = @Translation("Remote"),
+  *   handlers = {
+  *     "list_builder" = "Drupal\entity_share_client\RemoteListBuilder",
++ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+  *     "form" = {
+  *       "add" = "Drupal\entity_share_client\Form\RemoteForm",
+  *       "edit" = "Drupal\entity_share_client\Form\RemoteForm",

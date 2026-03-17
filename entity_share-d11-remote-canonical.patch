@@ -10,3 +10,15 @@ index 3ca8080..6d2181b 100644
   *     "form" = {
   *       "add" = "Drupal\entity_share_client\Form\RemoteForm",
   *       "edit" = "Drupal\entity_share_client\Form\RemoteForm",
+diff --git a/modules/entity_share_server/src/Entity/Channel.php b/modules/entity_share_server/src/Entity/Channel.php
+index bdc08ac..0827238 100644
+--- a/modules/entity_share_server/src/Entity/Channel.php
++++ b/modules/entity_share_server/src/Entity/Channel.php
+@@ -16,6 +16,7 @@ use Drupal\Core\Url;
+  *   label = @Translation("Channel"),
+  *   handlers = {
+  *     "list_builder" = "Drupal\entity_share_server\ChannelListBuilder",
++ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+  *     "form" = {
+  *       "add" = "Drupal\entity_share_server\Form\ChannelForm",
+  *       "edit" = "Drupal\entity_share_server\Form\ChannelForm",

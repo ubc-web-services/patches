@@ -1,0 +1,13 @@
+diff --git a/field_hidden.module b/field_hidden.module
+index 764d613a3051ab6b536e4ab7f929acc3f2c198d8..a9ff898b1f9a559636d73d193e57431eed786e5a 100644
+--- a/field_hidden.module
++++ b/field_hidden.module
+@@ -10,7 +10,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
+ /**
+  * Implements hook_help().
+  */
+-function field_hidden_help($route_name, RouteMatchInterface $route_match = NULL) {
++function field_hidden_help($route_name, ?RouteMatchInterface $route_match = NULL) {
+   switch ($route_name) {
+     case 'help.page.field_hidden':
+       $output = '';
